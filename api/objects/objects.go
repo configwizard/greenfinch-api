@@ -44,6 +44,22 @@ func getBearerToken(ctx context.Context, cli *client.Client, cntID cid.ID, owner
 	}
 	return bearer, nil
 }
+
+// GetObjectHead godoc
+// @Summary      Get object metadata
+// @Description  Returns the metadata/HEAD of an object in a container
+// @Tags         object
+// @Param        containerId   path      string  true  "The ID of the container to get the object metadata from"
+// @Param        objectId   path      string  true  "The ID of the object to get the metadata of"
+// @Param       publicKey header string true "Public Key"
+// @Param       X-r header string true "The bigInt r, that makes up part of the signature"
+// @Param       X-s header string true "The bigInt s, that makes up part of the signature"
+// @Success      200
+// @Failure      400  {object}  HTTPClientError
+// @Failure      502  {object}  HTTPServerError
+// @Router       /object/{containerId}/{objectId} [head]
+// @response     default
+// @Header       200              {string}  NEOFS-META  "The base64 encoded version of the binary bearer token ready for signing"
 func GetObjectHead(cli *client.Client, serverPublicKey *keys.PublicKey) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		//this is all going to get done regularly and thus should be a middleware
@@ -100,6 +116,18 @@ func GetObjectHead(cli *client.Client, serverPublicKey *keys.PublicKey) http.Han
 	}
 }
 
+// ListObjectsInContainer godoc
+// @Summary      Lists all the objects in a container
+// @Description  Returns the IDs of all the objects in the specified container
+// @Tags         object
+// @Param        containerId   path      string  true  "The ID of the container to get the object metadata from"
+// @Param       publicKey header string true "Public Key"
+// @Param       X-r header string true "The bigInt r, that makes up part of the signature"
+// @Param       X-s header string true "The bigInt s, that makes up part of the signature"
+// @Success      200  {array}	string
+// @Failure      400  {object}  HTTPClientError
+// @Failure      502  {object}  HTTPServerError
+// @Router       /object/{containerId}/ [get]
 func ListObjectsInContainer(cli *client.Client, serverPublicKey *keys.PublicKey) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cntID := cid.ID{}
@@ -150,6 +178,25 @@ func ListObjectsInContainer(cli *client.Client, serverPublicKey *keys.PublicKey)
 		w.Write(marshal)
 	}
 }
+
+type Object struct {
+	Attributes map[string]string
+	Content []byte
+}
+// GetObject godoc
+// @Summary      Gets the body of an object
+// @Description  Returns the body of the object requested in either binary or JSON format
+// @Tags         object
+// @Param        containerId   path      string  true  "The ID of the container to get the object metadata from"
+// @Param        objectId   path      string  true  "The ID of the object to get the metadata of"
+// @Param       publicKey header string true "Public Key"
+// @Param       X-r header string true "The bigInt r, that makes up part of the signature"
+// @Param       X-s header string true "The bigInt s, that makes up part of the signature"
+// @Success      200  {object} Object
+// @Produce octet-stream
+// @Failure      400  {object}  HTTPClientError
+// @Failure      502  {object}  HTTPServerError
+// @Router       /object/{containerId}/{objectId} [get]
 func GetObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.HandlerFunc{
 	return func(w http.ResponseWriter, r *http.Request) {
 		cntID := cid.ID{}
@@ -194,19 +241,30 @@ func GetObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.Handler
 	}
 }
 
+// UploadObject godoc
+// @Summary Upload an object
+// @Description Upload object, depending on request content type, defines the upload type
+// @Tags         object
+// @Param        containerId   path      string  true  "The ID of the container to get the object metadata from"
+// @Param       publicKey header string true "Public Key"
+// @Param       X-r header string true "The bigInt r, that makes up part of the signature"
+// @Param       X-s header string true "The bigInt s, that makes up part of the signature"
+// @Accept  application/json
+// @Param   file formData file true  "choose a file. Set the content type to multipart/form-data"
+// @Produce  json
+// @Accept  multipart/form-data
+// @Produce octet-stream
+// @Param   json body Object true "specify the json content. Set the content type to application/json"
+// @Success 200 {array} int [45, 21]
+// @Failure 400 {object} HTTPClientError
+// @Failure 404 {object} HTTPServerError
+// @Router /object/{containerId} [post]
 func UploadObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cntID := cid.ID{}
 		err := cntID.Parse(chi.URLParam(r, "containerId"))
 		if err != nil {
 			log.Println("no container id", err)
-			http.Error(w, err.Error(), 400)
-			return
-		}
-		objID := oid.ID{}
-		err = objID.Parse(chi.URLParam(r, "objectId"))
-		if err != nil {
-			log.Println("no object id", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
@@ -310,7 +368,19 @@ func UploadObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.Hand
 	}
 }
 
-
+// DeleteObject godoc
+// @Summary Delete an object
+// @Description Delete object from container (permanent)
+// @Tags         object
+// @Param        containerId   path      string  true  "The ID of the container to get the object metadata from"
+// @Param        objectId   path      string  true  "The ID of the object to get the metadata of"
+// @Param       publicKey header string true "Public Key"
+// @Param       X-r header string true "The bigInt r, that makes up part of the signature"
+// @Param       X-s header string true "The bigInt s, that makes up part of the signature"
+// @Success 204 {object} string  accepted
+// @Failure 400 {object} HTTPClientError
+// @Failure 404 {object} HTTPServerError
+// @Router /object/{containerId}/{objectId} [delete]
 func DeleteObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cntID := cid.ID{}
@@ -356,6 +426,7 @@ func DeleteObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.Hand
 			log.Println("failed to marshal response", err)
 			http.Error(w, err.Error(), 502)
 		}
+		//todo, set to 204
 		w.Write(marshal)
 	}
 }

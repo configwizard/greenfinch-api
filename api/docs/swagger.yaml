@@ -1,0 +1,289 @@
+basePath: /api/v1
+definitions:
+  objects.HTTPClientError:
+    properties:
+      code:
+        example: 400
+        type: integer
+      message:
+        example: status bad request
+        type: string
+    type: object
+  objects.HTTPServerError:
+    properties:
+      code:
+        example: 502
+        type: integer
+      message:
+        example: status server error
+        type: string
+    type: object
+  objects.Object:
+    properties:
+      attributes:
+        additionalProperties:
+          type: string
+        type: object
+      content:
+        items:
+          type: integer
+        type: array
+    type: object
+host: localhost:9000
+info:
+  contact:
+    name: Alex Walker
+    url: '@configwizard on Discord'
+  description: This API serves as a route to communicate with your containers via
+    HTTP/REST
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: See license
+  title: Greenfinch NeoFS RESTful API
+  version: "0.1"
+paths:
+  /object/{containerId}:
+    post:
+      consumes:
+      - application/json
+      - multipart/form-data
+      description: Upload object, depending on request content type, defines the upload
+        type
+      parameters:
+      - description: The ID of the container to get the object metadata from
+        in: path
+        name: containerId
+        required: true
+        type: string
+      - description: Public Key
+        in: header
+        name: publicKey
+        required: true
+        type: string
+      - description: The bigInt r, that makes up part of the signature
+        in: header
+        name: X-r
+        required: true
+        type: string
+      - description: The bigInt s, that makes up part of the signature
+        in: header
+        name: X-s
+        required: true
+        type: string
+      - description: choose a file. Set the content type to multipart/form-data
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: specify the json content. Set the content type to application/json
+        in: body
+        name: json
+        required: true
+        schema:
+          $ref: '#/definitions/objects.Object'
+      produces:
+      - application/json
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: integer
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/objects.HTTPClientError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/objects.HTTPServerError'
+      summary: Upload an object
+      tags:
+      - object
+  /object/{containerId}/:
+    get:
+      description: Returns the IDs of all the objects in the specified container
+      parameters:
+      - description: The ID of the container to get the object metadata from
+        in: path
+        name: containerId
+        required: true
+        type: string
+      - description: Public Key
+        in: header
+        name: publicKey
+        required: true
+        type: string
+      - description: The bigInt r, that makes up part of the signature
+        in: header
+        name: X-r
+        required: true
+        type: string
+      - description: The bigInt s, that makes up part of the signature
+        in: header
+        name: X-s
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/objects.HTTPClientError'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/objects.HTTPServerError'
+      summary: Lists all the objects in a container
+      tags:
+      - object
+  /object/{containerId}/{objectId}:
+    delete:
+      description: Delete object from container (permanent)
+      parameters:
+      - description: The ID of the container to get the object metadata from
+        in: path
+        name: containerId
+        required: true
+        type: string
+      - description: The ID of the object to get the metadata of
+        in: path
+        name: objectId
+        required: true
+        type: string
+      - description: Public Key
+        in: header
+        name: publicKey
+        required: true
+        type: string
+      - description: The bigInt r, that makes up part of the signature
+        in: header
+        name: X-r
+        required: true
+        type: string
+      - description: The bigInt s, that makes up part of the signature
+        in: header
+        name: X-s
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/objects.HTTPClientError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/objects.HTTPServerError'
+      summary: Delete an object
+      tags:
+      - object
+    get:
+      description: Returns the body of the object requested in either binary or JSON
+        format
+      parameters:
+      - description: The ID of the container to get the object metadata from
+        in: path
+        name: containerId
+        required: true
+        type: string
+      - description: The ID of the object to get the metadata of
+        in: path
+        name: objectId
+        required: true
+        type: string
+      - description: Public Key
+        in: header
+        name: publicKey
+        required: true
+        type: string
+      - description: The bigInt r, that makes up part of the signature
+        in: header
+        name: X-r
+        required: true
+        type: string
+      - description: The bigInt s, that makes up part of the signature
+        in: header
+        name: X-s
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/objects.Object'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/objects.HTTPClientError'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/objects.HTTPServerError'
+      summary: Gets the body of an object
+      tags:
+      - object
+    head:
+      description: Returns the metadata/HEAD of an object in a container
+      parameters:
+      - description: The ID of the container to get the object metadata from
+        in: path
+        name: containerId
+        required: true
+        type: string
+      - description: The ID of the object to get the metadata of
+        in: path
+        name: objectId
+        required: true
+        type: string
+      - description: Public Key
+        in: header
+        name: publicKey
+        required: true
+        type: string
+      - description: The bigInt r, that makes up part of the signature
+        in: header
+        name: X-r
+        required: true
+        type: string
+      - description: The bigInt s, that makes up part of the signature
+        in: header
+        name: X-s
+        required: true
+        type: string
+      responses:
+        "200":
+          description: ""
+          headers:
+            NEOFS-META:
+              description: The base64 encoded version of the binary bearer token ready
+                for signing
+              type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/objects.HTTPClientError'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/objects.HTTPServerError'
+        default:
+          description: ""
+      summary: Get object metadata
+      tags:
+      - object
+swagger: "2.0"
