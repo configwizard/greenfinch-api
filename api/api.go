@@ -39,12 +39,12 @@ password is password
 
 
 var (
-	walletPath = flag.String("wallet", "", "path to JSON wallets file")
+	walletPath = flag.String("wallet", os.Getenv("WALLET_PATH"), "path to JSON wallets file")
 	//walletAddr = flag.String("address", "", "wallets address [optional]")
 	cnt = flag.Bool("container", false, "make a container")
 	//createWallet = flag.Bool("create", false, "create a wallets")
 	//useBearerToken = flag.Bool("bearer", false, "use a bearer token")
-	password = flag.String("password", "", "wallet password")
+	password = flag.String("password", os.Getenv("WALLET_KEY"), "wallet password")
 )
 
 func GetCredentialsFromPath(path, address, password string) (*ecdsa.PrivateKey, error) {
