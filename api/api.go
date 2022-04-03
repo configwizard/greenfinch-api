@@ -8,10 +8,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	eacl2 "github.com/configwizard/gaspump-api/pkg/eacl"
+	client2 "github.com/configwizard/gaspump-api/pkg/client"
 	wallets "github.com/configwizard/gaspump-api/pkg/wallet"
 	"github.com/configwizard/greenfinch-api/api/objects"
 	"github.com/configwizard/greenfinch-api/api/tokens"
+	"github.com/configwizard/greenfinch-api/api/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -23,8 +24,11 @@ import (
 	"github.com/nspcc-dev/neofs-sdk-go/client"
 	"github.com/nspcc-dev/neofs-sdk-go/container"
 	cid "github.com/nspcc-dev/neofs-sdk-go/container/id"
+	"github.com/nspcc-dev/neofs-sdk-go/object"
+	oid "github.com/nspcc-dev/neofs-sdk-go/object/id"
 	"github.com/nspcc-dev/neofs-sdk-go/owner"
 	"github.com/nspcc-dev/neofs-sdk-go/policy"
+	"github.com/nspcc-dev/neofs-sdk-go/token"
 	"log"
 	"net/http"
 	"os"
@@ -133,7 +137,7 @@ func createProtectedContainer(ctx context.Context, cli *client.Client, id *owner
 func setRestrictedContainerAccess(ctx context.Context, cli *client.Client, containerID cid.ID) error {
 
 	// Step 2: set restrictive extended ACL
-	table := eacl2.PutAllowDenyOthersEACL(containerID, nil)//objectPutDenyOthersEACL(containerID, nil)
+	table := tokens.PUTAllowDenyOthersEACL(containerID, nil)//objectPutDenyOthersEACL(containerID, nil)
 	var prmContainerSetEACL client.PrmContainerSetEACL
 	prmContainerSetEACL.SetTable(table)
 
@@ -168,8 +172,6 @@ func await30Seconds(f func() bool) {
 	log.Fatal("timeout")
 }
 
-//go:embed docs/swagger.json
-var spec []byte
 func main() {
 
 	wd, _ := os.Getwd()
@@ -179,72 +181,86 @@ func main() {
 		flag.PrintDefaults()
 	}
 	flag.Parse()
-	//
+
+	/*
+		1. make a container with the key of the accessor (browser user)
+		2. now start an api with the server's key
+	 */
+	////
 	//os.Setenv("PRIVATE_KEY", "1daa689d543606a7c033b7d9cd9ca793189935294f5920ef0a39b3ad0d00f190")
-	//// First obtain client credentials: private key of request owner
-	//apiPrivateKey, err := keys.NewPrivateKeyFromHex(os.Getenv("PRIVATE_KEY"))
+	////First obtain client credentials: private key of request owner
+	//rawPrivateKey, err := keys.NewPrivateKeyFromHex(os.Getenv("PRIVATE_KEY"))
 	//if err != nil {
 	//	log.Fatal("can't read credentials:", err)
 	//}
+	//apiPrivateKey := &rawPrivateKey.PrivateKey
 
-	//containerOwnerPrivateKey := keys.PrivateKey{PrivateKey: rawContainerPrivateKey.PrivateKey}
-	//rawPublicKey, _ := containerOwnerPrivateKey.PublicKey().MarshalJSON()
-	//fmt.Println("rawPublicKey ", string(rawPublicKey)) // this is the public key i am using in javascript
-	// First obtain client credentials: private key of request owner
+	//THE SERVER SHOULD OWN THE CONTAINER ?? THEORY 0.1
+
+	//First obtain client credentials: private key of request owner
 	apiPrivateKey, err := wallets.GetCredentialsFromPath(*walletPath, "", *password)
 	if err != nil {
 		log.Fatal("can't read credentials:", err)
 	}
+	fmt.Println(apiPrivateKey)
 	w := wallets.GetWalletFromPrivateKey(apiPrivateKey)
 	log.Println("using account ", w.Address)
-
 	apiClient, err := createClient(apiPrivateKey)
 	if err != nil {
 		log.Fatal("err ", err)
 	}
-	//if *cnt {
-	//	ctx := context.Background()
-	//	apiKeyOwner := owner.NewIDFromPublicKey(&apiPrivateKey.PublicKey)
-	//	////1. the container owner needs to create a container to work on:
-	//	//containerID, err := createProtectedContainer(ctx, apiClient, apiKeyOwner)
-	//	//if err != nil {
-	//	//	log.Fatal("err ", err)
-	//	//}
-	//	////2. Now the container owner needs to protect the container from undesirables
-	//	//if err := setRestrictedContainerAccess(ctx, apiClient, containerID); err != nil {
-	//	//	log.Fatal("err ", err)
-	//	//}
-	//	cntID := cid.ID{}
-	//	cntID.Parse("HNhjKjd864CKBbce3voBMRu9j95rHCtTzHcycUMwuZTx")
-	//	fmt.Println("created container id ", cntID)
-	//	putSession, err := client2.CreateSessionWithObjectPutContext(ctx, apiClient, apiKeyOwner, cntID, utils.GetHelperTokenExpiry(ctx, apiClient), &apiPrivateKey.PrivateKey)
-	//	if err != nil {
-	//		log.Fatal(err)
-	//	}
-	//	var objectID oid.ID
-	//	o := object.New()
-	//	o.SetContainerID(&cntID)
-	//	o.SetOwnerID(apiKeyOwner)
-	//
-	//	objWriter, err := apiClient.ObjectPutInit(ctx, client.PrmObjectPutInit{})
-	//	if putSession != nil {
-	//		objWriter.WithinSession(*putSession)
-	//	}
-	//	var bearerToken token.BearerToken
-	//	if &bearerToken != nil {
-	//		objWriter.WithBearerToken(bearerToken)
-	//	}
-	//	if !objWriter.WriteHeader(*o) {
-	//		log.Fatal(err)
-	//	}
-	//	objWriter.WritePayloadChunk([]byte("Hello World"))
-	//	res, err := objWriter.Close()
-	//	if err != nil {
-	//		log.Fatal(err)
-	//	}
-	//	res.ReadStoredObjectID(&objectID)
-	//	fmt.Println("successfully stored object ", objectID.String(), " in container ", cntID.String())
-	//}
+
+	if *cnt {
+		containerOwnerPrivateKey := keys.PrivateKey{PrivateKey: *apiPrivateKey}
+		rawContainerOwnerPrivateKeyPublicKey, _ := containerOwnerPrivateKey.PublicKey().MarshalJSON()
+		containerOwnerID := owner.NewIDFromPublicKey((*ecdsa.PublicKey)(containerOwnerPrivateKey.PublicKey()))
+		fmt.Println("rawContainerOwnerPrivateKeyPublicKey ", string(rawContainerOwnerPrivateKeyPublicKey)) // this is the public key i am using in javascript
+
+		ctx := context.Background()
+
+		apiKeyOwner := owner.NewIDFromPublicKey((*ecdsa.PublicKey)(w.PrivateKey().PublicKey()))
+		//1. the container owner needs to create a container to work on:
+		containerID, err := createProtectedContainer(ctx, apiClient, containerOwnerID)
+		if err != nil {
+			log.Fatal("err ", err)
+		}
+		//2. Now the container owner needs to protect the container from undesirables
+		if err := setRestrictedContainerAccess(ctx, apiClient, containerID); err != nil {
+			log.Fatal("err ", err)
+		}
+		//cntID := cid.ID{}
+		//cntID.Parse("HNhjKjd864CKBbce3voBMRu9j95rHCtTzHcycUMwuZTx")
+		fmt.Println("created container id ", containerID)
+		//should the owner of the object be the server? Is that necessary?
+		putSession, err := client2.CreateSessionWithObjectPutContext(ctx, apiClient, apiKeyOwner, containerID, utils.GetHelperTokenExpiry(ctx, apiClient), apiPrivateKey)
+		if err != nil {
+			log.Fatal(err)
+		}
+		var objectID oid.ID
+		o := object.New()
+		o.SetContainerID(&containerID)
+		o.SetOwnerID(apiKeyOwner)
+
+		objWriter, err := apiClient.ObjectPutInit(ctx, client.PrmObjectPutInit{})
+		if putSession != nil {
+			objWriter.WithinSession(*putSession)
+		}
+		var bearerToken token.BearerToken
+		if &bearerToken != nil {
+			objWriter.WithBearerToken(bearerToken)
+		}
+		if !objWriter.WriteHeader(*o) {
+			log.Fatal(err)
+		}
+		objWriter.WritePayloadChunk([]byte("Hello World"))
+		res, err := objWriter.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+		res.ReadStoredObjectID(&objectID)
+		fmt.Println("successfully stored object ", objectID.String(), " in container ", containerID.String())
+		os.Exit(0)
+	}
 
 	// the above will have been done by the user, out of band
 	r := chi.NewRouter()
@@ -258,12 +274,19 @@ func main() {
 		AllowCredentials: true, //will be required for api key access management
 		MaxAge:           300, // Maximum value not ignored by any of major browsers
 	})
+	serverPrivateKey := keys.PrivateKey{PrivateKey: *apiPrivateKey}
+	rawServerContainerPublicKey, _ := serverPrivateKey.PublicKey().MarshalJSON()
+	//rawContainerOwnerPrivateKeyPublicKey := apiPrivateKey.PublicKey
+	fmt.Println("using public key ", rawServerContainerPublicKey)
 	r.Use(cors.Handler)
 	FileServer(r) //static file serving frontend
+	fs := http.FileServer(http.Dir("dist"))
+	r.Handle("/swagger/*", http.StripPrefix("/swagger/", fs))
+	//r.Handle("/swagger/", http.StripPrefix("/swagger/", fs))
 	r.Route("/api/v1/bearer", func(r chi.Router) {
 		r.Use(WalletCtx)
 		//ok so this endpoint is requesting a new bearer token to sign
-		r.Get("/{containerId}", tokens.UnsignedBearerToken(apiClient))
+		r.Get("/{containerId}", tokens.UnsignedBearerToken(apiClient, serverPrivateKey.PublicKey()))
 	})
 	r.Route("/api/v1/container", func(r chi.Router) {
 		r.Use(WalletCtx)
@@ -277,29 +300,29 @@ func main() {
 	})
 	r.Route("/api/v1/object", func(r chi.Router) {
 		r.Use(WalletCtx)
-		r.Head("/{containerId}/{objectId}", objects.GetObjectHead(apiClient))
-		r.Get("/{containerId}/{objectId}", objects.GetObject(apiClient))
-		r.Get("/{containerId}", objects.ListObjectsInContainer(apiClient))
-		r.Post("/{containerId}", objects.UploadObject(apiClient))
-		r.Delete("/{containerId}/{objectId}", objects.DeleteObject(apiClient))
+		r.Head("/{containerId}/{objectId}", objects.GetObjectHead(apiClient, serverPrivateKey.PublicKey()))
+		r.Get("/{containerId}/{objectId}", objects.GetObject(apiClient, serverPrivateKey.PublicKey()))
+		r.Get("/{containerId}", objects.ListObjectsInContainer(apiClient, serverPrivateKey.PublicKey()))
+		r.Post("/{containerId}", objects.UploadObject(apiClient, serverPrivateKey.PublicKey()))
+		r.Delete("/{containerId}/{objectId}", objects.DeleteObject(apiClient, serverPrivateKey.PublicKey()))
 	})
 	http.ListenAndServe(":9000", r)
 }
 // FileServer is serving static files.
-func DocServer(router *chi.Mux) {
-	root := "./api"
-	fs := http.FileServer(http.Dir(root))
-
-	router.Get("/swagger", func(w http.ResponseWriter, r *http.Request) {
-		st, err := os.Stat(root + r.RequestURI)
-		fmt.Println("stat", st, err)
-		if os.IsNotExist(err) {
-			http.StripPrefix(r.RequestURI, fs).ServeHTTP(w, r)
-		} else {
-			http.StripPrefix(r.RequestURI, fs).ServeHTTP(w, r)
-		}
-	})
-}
+//func DocServer(router *chi.Mux) {
+//	root := "./api"
+//	fs := http.FileServer(http.Dir(root))
+//
+//	router.Get("/swagger", func(w http.ResponseWriter, r *http.Request) {
+//		st, err := os.Stat(root + r.RequestURI)
+//		fmt.Println("stat", st, err)
+//		if os.IsNotExist(err) {
+//			http.StripPrefix(r.RequestURI, fs).ServeHTTP(w, r)
+//		} else {
+//			http.StripPrefix(r.RequestURI, fs).ServeHTTP(w, r)
+//		}
+//	})
+//}
 // FileServer is serving static files.
 func FileServer(router *chi.Mux) {
 	root := "./client"

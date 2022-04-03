@@ -7,8 +7,8 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
-	eacl2 "github.com/configwizard/gaspump-api/pkg/eacl"
 	"github.com/configwizard/gaspump-api/pkg/object"
+	"github.com/configwizard/greenfinch-api/api/tokens"
 	"github.com/configwizard/greenfinch-api/api/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
@@ -26,10 +26,10 @@ import (
 	"time"
 )
 
-func getBearerToken(ctx context.Context, cli *client.Client, cntID cid.ID, k *keys.PublicKey, sigR, sigS big.Int) (*token.BearerToken, error){
-	kOwner := owner.NewIDFromPublicKey((*ecdsa.PublicKey)(k))
+func getBearerToken(ctx context.Context, cli *client.Client, cntID cid.ID, ownerPublicKey, serverPublicKey *keys.PublicKey, sigR, sigS big.Int) (*token.BearerToken, error){
+	kOwner := owner.NewIDFromPublicKey((*ecdsa.PublicKey)(serverPublicKey))
 	signatureData := elliptic.Marshal(elliptic.P256(), &sigR, &sigS)
-	table := eacl2.PutAllowDenyOthersEACL(cntID, k)
+	table := tokens.PUTAllowDenyOthersEACL(cntID, serverPublicKey) //eacl2.PutAllowDenyOthersEACL(cntID, serverPublicKey)//eacl2.PutAllowDenyOthersEACL(cntID, serverPublicKey)
 
 	//this client can be the actor's client
 	bearer := token.NewBearerToken()
@@ -38,13 +38,13 @@ func getBearerToken(ctx context.Context, cli *client.Client, cntID cid.ID, k *ke
 	bearer.SetOwner(kOwner)
 
 	//now sign the bearer token
-	bearer, err := utils.VerifySignature(bearer.ToV2(), signatureData, *k)
+	bearer, err := utils.VerifySignature(bearer.ToV2(), signatureData, *ownerPublicKey)
 	if err != nil {
 		return nil, err
 	}
 	return bearer, nil
 }
-func GetObjectHead(cli *client.Client) http.HandlerFunc {
+func GetObjectHead(cli *client.Client, serverPublicKey *keys.PublicKey) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		//this is all going to get done regularly and thus should be a middleware
 		cntID := cid.ID{}
@@ -62,19 +62,20 @@ func GetObjectHead(cli *client.Client) http.HandlerFunc {
 			return
 		}
 		ctx := r.Context()
-		k, err, code := utils.GetPublicKey(ctx)
+		ownerPublicKey, err, code := utils.GetPublicKey(ctx)
 		if err != nil {
 			log.Println("no public key", err)
 			http.Error(w, err.Error(), code)
 			return
 		}
+
 		sigR, sigS, err := utils.RetriveSignatureParts(ctx)
 		if err != nil {
 			log.Println("cannot generate signature", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		bearer, err := getBearerToken(ctx, cli, cntID, k, sigR, sigS)
+		bearer, err := getBearerToken(ctx, cli, cntID, ownerPublicKey, serverPublicKey, sigR, sigS)
 		if err != nil {
 			log.Println("cannot generate bearer token", err)
 			http.Error(w, err.Error(), 400)
@@ -99,7 +100,7 @@ func GetObjectHead(cli *client.Client) http.HandlerFunc {
 	}
 }
 
-func ListObjectsInContainer(cli *client.Client) http.HandlerFunc {
+func ListObjectsInContainer(cli *client.Client, serverPublicKey *keys.PublicKey) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cntID := cid.ID{}
 		err := cntID.Parse(chi.URLParam(r, "containerId"))
@@ -128,7 +129,7 @@ func ListObjectsInContainer(cli *client.Client) http.HandlerFunc {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		bearer, err := getBearerToken(ctx, cli, cntID, k, sigR, sigS)
+		bearer, err := getBearerToken(ctx, cli, cntID, k, serverPublicKey, sigR, sigS)
 		if err != nil {
 			log.Println("cannot generate bearer token", err)
 			http.Error(w, err.Error(), 400)
@@ -149,7 +150,7 @@ func ListObjectsInContainer(cli *client.Client) http.HandlerFunc {
 		w.Write(marshal)
 	}
 }
-func GetObject(cli *client.Client) http.HandlerFunc{
+func GetObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.HandlerFunc{
 	return func(w http.ResponseWriter, r *http.Request) {
 		cntID := cid.ID{}
 		err := cntID.Parse(chi.URLParam(r, "containerId"))
@@ -178,7 +179,7 @@ func GetObject(cli *client.Client) http.HandlerFunc{
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		bearer, err := getBearerToken(ctx, cli, cntID, k, sigR, sigS)
+		bearer, err := getBearerToken(ctx, cli, cntID, k, serverPublicKey, sigR, sigS)
 		if err != nil {
 			log.Println("cannot generate bearer token", err)
 			http.Error(w, err.Error(), 400)
@@ -193,7 +194,7 @@ func GetObject(cli *client.Client) http.HandlerFunc{
 	}
 }
 
-func UploadObject(cli *client.Client) http.HandlerFunc {
+func UploadObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cntID := cid.ID{}
 		err := cntID.Parse(chi.URLParam(r, "containerId"))
@@ -223,7 +224,7 @@ func UploadObject(cli *client.Client) http.HandlerFunc {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		bearer, err := getBearerToken(ctx, cli, cntID, k, sigR, sigS)
+		bearer, err := getBearerToken(ctx, cli, cntID, k, serverPublicKey, sigR, sigS)
 		if err != nil {
 			log.Println("cannot generate bearer token", err)
 			http.Error(w, err.Error(), 400)
@@ -310,7 +311,7 @@ func UploadObject(cli *client.Client) http.HandlerFunc {
 }
 
 
-func DeleteObject(cli *client.Client) http.HandlerFunc {
+func DeleteObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cntID := cid.ID{}
 		err := cntID.Parse(chi.URLParam(r, "containerId"))
@@ -339,7 +340,7 @@ func DeleteObject(cli *client.Client) http.HandlerFunc {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		bearer, err := getBearerToken(ctx, cli, cntID, k, sigR, sigS)
+		bearer, err := getBearerToken(ctx, cli, cntID, k, serverPublicKey, sigR, sigS)
 		if err != nil {
 			log.Println("cannot generate bearer token", err)
 			http.Error(w, err.Error(), 400)

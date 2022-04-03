@@ -74,3 +74,5 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+
+replace github.com/configwizard/gaspump-api => /Users/alex.walker/go/src/github.com/configwizard/gaspump-api
