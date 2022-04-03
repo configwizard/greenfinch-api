@@ -8,8 +8,8 @@ import (
 	"encoding/json"
 	"fmt"
 	eacl2 "github.com/configwizard/gaspump-api/pkg/eacl"
-	"github.com/configwizard/greenfinch-api/api/utils"
 	"github.com/configwizard/gaspump-api/pkg/object"
+	"github.com/configwizard/greenfinch-api/api/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
 	"github.com/nspcc-dev/neofs-sdk-go/client"
@@ -99,6 +99,56 @@ func GetObjectHead(cli *client.Client) http.HandlerFunc {
 	}
 }
 
+func ListObjectsInContainer(cli *client.Client) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cntID := cid.ID{}
+		err := cntID.Parse(chi.URLParam(r, "containerId"))
+		if err != nil {
+			log.Println("no container id", err)
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		objID := oid.ID{}
+		err = objID.Parse(chi.URLParam(r, "objectId"))
+		if err != nil {
+			log.Println("no object id", err)
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		ctx := r.Context()
+		k, err, code := utils.GetPublicKey(ctx)
+		if err != nil {
+			log.Println("no public key", err)
+			http.Error(w, err.Error(), code)
+			return
+		}
+		sigR, sigS, err := utils.RetriveSignatureParts(ctx)
+		if err != nil {
+			log.Println("cannot generate signature", err)
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		bearer, err := getBearerToken(ctx, cli, cntID, k, sigR, sigS)
+		if err != nil {
+			log.Println("cannot generate bearer token", err)
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		var filters = object2.SearchFilters{}
+		filters.AddRootFilter()
+		list, err := object.QueryObjects(ctx, cli, cntID, filters, bearer, nil)
+		if err != nil {
+			http.Error(w, err.Error(), 502)
+			return
+		}
+		marshal, err := json.Marshal(list)
+		if err != nil {
+			http.Error(w, err.Error(), 502)
+			return
+		}
+		w.Write(marshal)
+	}
+}
 func GetObject(cli *client.Client) http.HandlerFunc{
 	return func(w http.ResponseWriter, r *http.Request) {
 		cntID := cid.ID{}
@@ -179,32 +229,6 @@ func UploadObject(cli *client.Client) http.HandlerFunc {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		// Parse our multipart form, 10 << 20 specifies a maximum
-		// upload of 10 MB files. todo: make this larger
-		r.ParseMultipartForm(10 << 20)
-		// FormFile returns the first file for the given key `file`
-		// it also returns the FileHeader so we can get the Filename,
-		// the Header and the size of the file
-		//e.g:
-		//<form
-		//enctype="multipart/form-data"
-		//action="http://localhost:8080/upload"
-		//method="post"
-		//>
-		//<input type="file" name="file" />
-		//<input type="submit" value="upload" />
-		//</form>
-
-		file, handler, err := r.FormFile("file")
-		if err != nil {
-			fmt.Println("Error Retrieving the File")
-			http.Error(w, err.Error(), 502)
-			return
-		}
-		defer file.Close()
-		fmt.Printf("Uploaded File: %+v\n", handler.Filename)
-		fmt.Printf("File Size: %+v\n", handler.Size)
-		fmt.Printf("MIME Header: %+v\n", handler.Header)
 
 		var attributes []*object2.Attribute
 		//handle attributes
@@ -222,20 +246,115 @@ func UploadObject(cli *client.Client) http.HandlerFunc {
 			tmp.SetKey(v)
 			attributes = append(attributes, tmp)
 		}
+
+		//timestamp is reserved
 		timeStampAttr := new(object2.Attribute)
 		timeStampAttr.SetKey(object2.AttributeTimestamp)
 		timeStampAttr.SetValue(strconv.FormatInt(time.Now().Unix(), 10))
+		attributes = append(attributes, timeStampAttr)
+		var RR io.Reader
+		contentTypeAttr := new(object2.Attribute)
+		contentTypeAttr.SetKey("Content-Type")
+		contentTypeAttr.SetValue(r.Header.Get("Content-Type"))
+		if r.Header.Get("Content-Type") == "application/json" {
+			//in this case, we are just storing the content as json bytes in the object
+			//in this case it is expected the FileName was sent as an attribute already
+			if _, ok := parsedAttributes[object2.AttributeFileName]; !ok {
+				http.Error(w, "no filename specified", 400)
+				return
+			}
+			RR = (io.Reader)(r.Body)
+		} else if r.Header.Get("Content-Type") == "multipart/form-data" {
 
-		fileNameAttr := new(object2.Attribute)
-		fileNameAttr.SetKey(object2.AttributeFileName)
-		fileNameAttr.SetValue(handler.Filename)
-		attributes = append(attributes, []*object2.Attribute{timeStampAttr, fileNameAttr}...)
-		RR := (io.Reader)(file)
+			//<form
+			//enctype="multipart/form-data"
+			//action="http://localhost:8080/upload"
+			//method="post"
+			//>
+			//<input type="file" name="file" />
+			//<input type="submit" value="upload" />
+			//</form>
+			// FormFile returns the first file for the given key `file`
+			// it also returns the FileHeader so we can get the Filename,
+			// the Header and the size of the file
+			//upload by multipart
+			// Parse our multipart form, 10 << 20 specifies a maximum
+			// upload of 10 MB files. todo: make this larger
+			r.ParseMultipartForm(10 << 20)
+
+			file, handler, err := r.FormFile("file")
+			if err != nil {
+				fmt.Println("Error Retrieving the File")
+				http.Error(w, err.Error(), 502)
+				return
+			}
+			defer file.Close()
+			fmt.Printf("Uploaded File: %+v\n", handler.Filename)
+			fmt.Printf("File Size: %+v\n", handler.Size)
+			fmt.Printf("MIME Header: %+v\n", handler.Header)
+
+			fileNameAttr := new(object2.Attribute)
+			fileNameAttr.SetKey(object2.AttributeFileName)
+			fileNameAttr.SetValue(handler.Filename)
+			attributes = append(attributes, fileNameAttr)
+			RR = (io.Reader)(file)
+		}
+
 		id, err := object.UploadObject(ctx, cli, cntID, kOwner, attributes, bearer, nil, &RR)
 		if err != nil {
 			http.Error(w, err.Error(), 502)
 			return
 		}
 		w.Write([]byte(id.String()))
+	}
+}
+
+
+func DeleteObject(cli *client.Client) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cntID := cid.ID{}
+		err := cntID.Parse(chi.URLParam(r, "containerId"))
+		if err != nil {
+			log.Println("no container id", err)
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		objID := oid.ID{}
+		err = objID.Parse(chi.URLParam(r, "objectId"))
+		if err != nil {
+			log.Println("no object id", err)
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		ctx := r.Context()
+		k, err, code := utils.GetPublicKey(ctx)
+		if err != nil {
+			log.Println("no public key", err)
+			http.Error(w, err.Error(), code)
+			return
+		}
+		sigR, sigS, err := utils.RetriveSignatureParts(ctx)
+		if err != nil {
+			log.Println("cannot generate signature", err)
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		bearer, err := getBearerToken(ctx, cli, cntID, k, sigR, sigS)
+		if err != nil {
+			log.Println("cannot generate bearer token", err)
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		res, err := object.DeleteObject(ctx, cli, objID, cntID, bearer, nil)
+		if err != nil {
+			log.Println("deleting object failed", err)
+			http.Error(w, err.Error(), 400)
+		}
+		marshal, err := json.Marshal(res)
+		if err != nil {
+			log.Println("failed to marshal response", err)
+			http.Error(w, err.Error(), 502)
+		}
+		w.Write(marshal)
 	}
 }
