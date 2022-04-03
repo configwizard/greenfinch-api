@@ -137,7 +137,7 @@ func createProtectedContainer(ctx context.Context, cli *client.Client, id *owner
 func setRestrictedContainerAccess(ctx context.Context, cli *client.Client, containerID cid.ID) error {
 
 	// Step 2: set restrictive extended ACL
-	table := tokens.PUTAllowDenyOthersEACL(containerID, nil)//objectPutDenyOthersEACL(containerID, nil)
+	table := tokens.PUTAllowDenyOthersEACL(containerID, nil)
 	var prmContainerSetEACL client.PrmContainerSetEACL
 	prmContainerSetEACL.SetTable(table)
 
@@ -210,6 +210,8 @@ func main() {
 		log.Fatal("err ", err)
 	}
 
+
+	//THIS ONLY WORKS IF THE CONTAINER OWNER IS THE CLIENT KEY
 	if *cnt {
 		containerOwnerPrivateKey := keys.PrivateKey{PrivateKey: *apiPrivateKey}
 		rawContainerOwnerPrivateKeyPublicKey, _ := containerOwnerPrivateKey.PublicKey().MarshalJSON()

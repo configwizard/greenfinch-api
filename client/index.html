@@ -62,11 +62,47 @@
                 </div>
             </div>
         </div>
-        <div class="col-sm-6">
+        <div class="col-sm-12">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">3. Use the signature</h5>
-                    <p class="card-text">The signature can now be used to make a request, in this case, retrieving the metadata of an object</p>
+                    <h5 class="card-title">3. Use the signature to upload</h5>
+                    <p class="card-text">Use the signature to upload some data to the contain</p>
+                    <div class="input-group mb-3">
+                        <div class="dropdown">
+                            <button class="btn btn-secondary dropdown-toggle" type="button" id="uploadDropDown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Dropdown button
+                            </button>
+                            <div class="dropdown-menu" aria-labelledby="uploadDropDownButton">
+                                <a class="dropdown-item upload" href="#">multipart/form</a>
+                                <a class="dropdown-item upload" href="#">application/json</a>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="uploadButton">Upload</button>
+                    <span>
+                        <pre id="uploadResponse"></pre>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">4. Use the signature to retrieve</h5>
+                    <p class="card-text">The signature can now be used to make a request</p>
+                    <div class="input-group mb-3">
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle" type="button" id="methodDropDown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Dropdown button
+                        </button>
+                        <div class="dropdown-menu" aria-labelledby="methodDropDownButton">
+                            <a class="dropdown-item method" href="#">META</a>
+                            <a class="dropdown-item method" href="#">BODY</a>
+                            <a class="dropdown-item method" href="#">LIST</a>
+                            <a class="dropdown-item method" href="#">DELETE</a>
+                        </div>
+                    </div>
+                    </div>
                     <div class="input-group mb-3">
                         <div class="input-group-prepend">
                             <span class="input-group-text">objectID</span>
@@ -74,24 +110,26 @@
                         <input type="text" class="form-control" id="objectID" aria-describedby="basic-addon3" value="">
                     </div>
                     <button class="btn btn-primary" id="requestMeta">Make request</button>
-                    <span>
-                        <pre id="metadata"></pre>
-                    </span>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">4. View the content</h5>
-                    <p class="card-text">In this case, the content was sent as a response header due to `"HEAD"` METHOD requests don't respond with a body. The content needs decoding</p>
                     <button class="btn btn-primary" id="decodeContent">Decode</button>
                     <span>
+                        <pre id="metadata"></pre>
                         <pre id="decodedContent"></pre>
                     </span>
                 </div>
             </div>
         </div>
+<!--        <div class="col-sm-6">-->
+<!--            <div class="card">-->
+<!--                <div class="card-body">-->
+<!--                    <h5 class="card-title">4. View the content</h5>-->
+<!--                    <p class="card-text">In this case, the content was sent as a response header due to `"HEAD"` METHOD requests don't respond with a body. The content needs decoding</p>-->
+<!--                    <button class="btn btn-primary" id="decodeContent">Decode</button>-->
+<!--                    <span>-->
+<!--                        <pre id="decodedContent"></pre>-->
+<!--                    </span>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
     </div>
 </div>
 
