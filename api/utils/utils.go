@@ -57,7 +57,7 @@ func GetPublicKey(ctx context.Context) (*keys.PublicKey, error, int) {
 	return k, nil, 200
 }
 
-func RetriveSignatureParts(ctx context.Context) (big.Int, big.Int, error){
+func RetrieveSignatureParts(ctx context.Context) (big.Int, big.Int, error){
 	stringR, ok := ctx.Value("stringR").(string)
 	if !ok {
 		return big.Int{}, big.Int{}, errors.New("error processing r")

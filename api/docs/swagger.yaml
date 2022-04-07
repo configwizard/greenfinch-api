@@ -35,7 +35,8 @@ info:
     name: Alex Walker
     url: '@configwizard on Discord'
   description: This API serves as a route to communicate with your containers via
-    HTTP/REST
+    HTTP/REST. You will need to have created a container already. This script will
+    help you do this.
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -49,7 +50,7 @@ paths:
       - application/json
       - multipart/form-data
       description: Upload object, depending on request content type, defines the upload
-        type
+        type. Max upload size 32 MB
       parameters:
       - description: The ID of the container to get the object metadata from
         in: path
@@ -102,7 +103,7 @@ paths:
             $ref: '#/definitions/objects.HTTPServerError'
       summary: Upload an object
       tags:
-      - object
+      - objects
   /object/{containerId}/:
     get:
       description: Returns the IDs of all the objects in the specified container
@@ -144,7 +145,7 @@ paths:
             $ref: '#/definitions/objects.HTTPServerError'
       summary: Lists all the objects in a container
       tags:
-      - object
+      - objects
   /object/{containerId}/{objectId}:
     delete:
       description: Delete object from container (permanent)
@@ -189,7 +190,7 @@ paths:
             $ref: '#/definitions/objects.HTTPServerError'
       summary: Delete an object
       tags:
-      - object
+      - objects
     get:
       description: Returns the body of the object requested in either binary or JSON
         format
@@ -236,7 +237,7 @@ paths:
             $ref: '#/definitions/objects.HTTPServerError'
       summary: Gets the body of an object
       tags:
-      - object
+      - objects
     head:
       description: Returns the metadata/HEAD of an object in a container
       parameters:
@@ -285,5 +286,5 @@ paths:
           description: ""
       summary: Get object metadata
       tags:
-      - object
+      - objects
 swagger: "2.0"

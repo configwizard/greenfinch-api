@@ -174,7 +174,7 @@ func await30Seconds(f func() bool) {
 }
 // @title           Greenfinch NeoFS RESTful API
 // @version         0.1
-// @description     This API serves as a route to communicate with your containers via HTTP/REST
+// @description     This API serves as a route to communicate with your containers via HTTP/REST. You will need to have created a container already. This script will help you do this.
 // @termsOfService  See license
 
 // @contact.name   Alex Walker

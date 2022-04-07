@@ -19,10 +19,12 @@ import (
 	"github.com/nspcc-dev/neofs-sdk-go/owner"
 	"github.com/nspcc-dev/neofs-sdk-go/token"
 	"io"
+	"io/ioutil"
 	"log"
 	"math/big"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -48,7 +50,7 @@ func getBearerToken(ctx context.Context, cli *client.Client, cntID cid.ID, owner
 // GetObjectHead godoc
 // @Summary      Get object metadata
 // @Description  Returns the metadata/HEAD of an object in a container
-// @Tags         object
+// @Tags         objects
 // @Param        containerId   path      string  true  "The ID of the container to get the object metadata from"
 // @Param        objectId   path      string  true  "The ID of the object to get the metadata of"
 // @Param       publicKey header string true "Public Key"
@@ -85,7 +87,7 @@ func GetObjectHead(cli *client.Client, serverPublicKey *keys.PublicKey) http.Han
 			return
 		}
 
-		sigR, sigS, err := utils.RetriveSignatureParts(ctx)
+		sigR, sigS, err := utils.RetrieveSignatureParts(ctx)
 		if err != nil {
 			log.Println("cannot generate signature", err)
 			http.Error(w, err.Error(), 400)
@@ -119,7 +121,7 @@ func GetObjectHead(cli *client.Client, serverPublicKey *keys.PublicKey) http.Han
 // ListObjectsInContainer godoc
 // @Summary      Lists all the objects in a container
 // @Description  Returns the IDs of all the objects in the specified container
-// @Tags         object
+// @Tags         objects
 // @Param        containerId   path      string  true  "The ID of the container to get the object metadata from"
 // @Param       publicKey header string true "Public Key"
 // @Param       X-r header string true "The bigInt r, that makes up part of the signature"
@@ -151,7 +153,7 @@ func ListObjectsInContainer(cli *client.Client, serverPublicKey *keys.PublicKey)
 			http.Error(w, err.Error(), code)
 			return
 		}
-		sigR, sigS, err := utils.RetriveSignatureParts(ctx)
+		sigR, sigS, err := utils.RetrieveSignatureParts(ctx)
 		if err != nil {
 			log.Println("cannot generate signature", err)
 			http.Error(w, err.Error(), 400)
@@ -186,7 +188,7 @@ type Object struct {
 // GetObject godoc
 // @Summary      Gets the body of an object
 // @Description  Returns the body of the object requested in either binary or JSON format
-// @Tags         object
+// @Tags         objects
 // @Param        containerId   path      string  true  "The ID of the container to get the object metadata from"
 // @Param        objectId   path      string  true  "The ID of the object to get the metadata of"
 // @Param       publicKey header string true "Public Key"
@@ -220,7 +222,7 @@ func GetObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.Handler
 			http.Error(w, err.Error(), code)
 			return
 		}
-		sigR, sigS, err := utils.RetriveSignatureParts(ctx)
+		sigR, sigS, err := utils.RetrieveSignatureParts(ctx)
 		if err != nil {
 			log.Println("cannot generate signature", err)
 			http.Error(w, err.Error(), 400)
@@ -232,8 +234,8 @@ func GetObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.Handler
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		WW := (io.Writer)(w)
-		_, err = object.GetObject(ctx, cli, objID, cntID, bearer, nil, &WW)
+		ioWriter := (io.Writer)(w)
+		_, err = object.GetObject(ctx, cli, objID, cntID, bearer, nil, &ioWriter)
 		if err != nil {
 			http.Error(w, err.Error(), 502)
 			return
@@ -243,8 +245,8 @@ func GetObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.Handler
 
 // UploadObject godoc
 // @Summary Upload an object
-// @Description Upload object, depending on request content type, defines the upload type
-// @Tags         object
+// @Description Upload object, depending on request content type, defines the upload type. Max upload size 32 MB
+// @Tags         objects
 // @Param        containerId   path      string  true  "The ID of the container to get the object metadata from"
 // @Param       publicKey header string true "Public Key"
 // @Param       X-r header string true "The bigInt r, that makes up part of the signature"
@@ -276,7 +278,7 @@ func UploadObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.Hand
 			return
 		}
 		kOwner := owner.NewIDFromPublicKey((*ecdsa.PublicKey)(k))
-		sigR, sigS, err := utils.RetriveSignatureParts(ctx)
+		sigR, sigS, err := utils.RetrieveSignatureParts(ctx)
 		if err != nil {
 			log.Println("cannot generate signature", err)
 			http.Error(w, err.Error(), 400)
@@ -293,10 +295,12 @@ func UploadObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.Hand
 		//handle attributes
 		parsedAttributes := make(map[string]string)
 		attributesStr := r.Header.Get("NEOFS-ATTRIBUTES")
-		err = json.Unmarshal([]byte(attributesStr), &parsedAttributes)
-		if err != nil {
-			http.Error(w, "invalid attributes" + err.Error(), 400)
-			return
+		fmt.Println("attributes", attributesStr)
+		if attributesStr != "" {
+			if err := json.Unmarshal([]byte(attributesStr), &parsedAttributes); err != nil {
+				http.Error(w, "invalid attributes"+err.Error(), 400)
+				return
+			}
 		}
 		fmt.Printf("parsed attributes %+v\r\n", parsedAttributes)
 		for k, v := range parsedAttributes {
@@ -311,20 +315,22 @@ func UploadObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.Hand
 		timeStampAttr.SetKey(object2.AttributeTimestamp)
 		timeStampAttr.SetValue(strconv.FormatInt(time.Now().Unix(), 10))
 		attributes = append(attributes, timeStampAttr)
-		var RR io.Reader
+		var ioReader io.Reader
 		contentTypeAttr := new(object2.Attribute)
 		contentTypeAttr.SetKey("Content-Type")
 		contentTypeAttr.SetValue(r.Header.Get("Content-Type"))
-		if r.Header.Get("Content-Type") == "application/json" {
+		fmt.Println("processing ", r.Header.Get("Content-Type"))
+		if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+			fmt.Println("application/json")
 			//in this case, we are just storing the content as json bytes in the object
 			//in this case it is expected the FileName was sent as an attribute already
 			if _, ok := parsedAttributes[object2.AttributeFileName]; !ok {
 				http.Error(w, "no filename specified", 400)
 				return
 			}
-			RR = (io.Reader)(r.Body)
-		} else if r.Header.Get("Content-Type") == "multipart/form-data" {
-
+			ioReader = (io.Reader)(r.Body)
+		} else if strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
+			fmt.Println("multipart management")
 			//<form
 			//enctype="multipart/form-data"
 			//action="http://localhost:8080/upload"
@@ -338,12 +344,15 @@ func UploadObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.Hand
 			// the Header and the size of the file
 			//upload by multipart
 			// Parse our multipart form, 10 << 20 specifies a maximum
-			// upload of 10 MB files. todo: make this larger
-			r.ParseMultipartForm(10 << 20)
+			// upload of 10 MB files.
+			//10 is the number, and we want to shift that 20 places for 10MB
+			//32 << 20 for 32MB
+			//128 << 20 for 128 MB
+			r.ParseMultipartForm(32 << 20)
 
 			file, handler, err := r.FormFile("file")
 			if err != nil {
-				fmt.Println("Error Retrieving the File")
+				fmt.Println("Error Retrieving the File", err)
 				http.Error(w, err.Error(), 502)
 				return
 			}
@@ -356,22 +365,32 @@ func UploadObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.Hand
 			fileNameAttr.SetKey(object2.AttributeFileName)
 			fileNameAttr.SetValue(handler.Filename)
 			attributes = append(attributes, fileNameAttr)
-			RR = (io.Reader)(file)
-		}
-
-		id, err := object.UploadObject(ctx, cli, cntID, kOwner, attributes, bearer, nil, &RR)
-		if err != nil {
-			http.Error(w, err.Error(), 502)
+			ioReader = (io.Reader)(file)
+		} else {
+			fmt.Println("no valid content type")
+			http.Error(w, "no valid content type", 502)
 			return
 		}
-		w.Write([]byte(id.String()))
+		buf, err := ioutil.ReadAll(ioReader)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("buf ", buf)
+		_ = kOwner
+		_ = bearer
+		//id, err := object.UploadObject(ctx, cli, cntID, kOwner, attributes, bearer, nil, &ioReader)
+		//if err != nil {
+		//	http.Error(w, err.Error(), 502)
+		//	return
+		//}id.String()
+		w.Write(buf)
 	}
 }
 
 // DeleteObject godoc
 // @Summary Delete an object
 // @Description Delete object from container (permanent)
-// @Tags         object
+// @Tags         objects
 // @Param        containerId   path      string  true  "The ID of the container to get the object metadata from"
 // @Param        objectId   path      string  true  "The ID of the object to get the metadata of"
 // @Param       publicKey header string true "Public Key"
@@ -404,7 +423,7 @@ func DeleteObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.Hand
 			http.Error(w, err.Error(), code)
 			return
 		}
-		sigR, sigS, err := utils.RetriveSignatureParts(ctx)
+		sigR, sigS, err := utils.RetrieveSignatureParts(ctx)
 		if err != nil {
 			log.Println("cannot generate signature", err)
 			http.Error(w, err.Error(), 400)

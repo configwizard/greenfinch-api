@@ -26,7 +26,7 @@ const docTemplate = `{
     "paths": {
         "/object/{containerId}": {
             "post": {
-                "description": "Upload object, depending on request content type, defines the upload type",
+                "description": "Upload object, depending on request content type, defines the upload type. Max upload size 32 MB",
                 "consumes": [
                     "application/json",
                     "multipart/form-data"
@@ -36,7 +36,7 @@ const docTemplate = `{
                     "application/octet-stream"
                 ],
                 "tags": [
-                    "object"
+                    "objects"
                 ],
                 "summary": "Upload an object",
                 "parameters": [
@@ -114,7 +114,7 @@ const docTemplate = `{
             "get": {
                 "description": "Returns the IDs of all the objects in the specified container",
                 "tags": [
-                    "object"
+                    "objects"
                 ],
                 "summary": "Lists all the objects in a container",
                 "parameters": [
@@ -179,7 +179,7 @@ const docTemplate = `{
                     "application/octet-stream"
                 ],
                 "tags": [
-                    "object"
+                    "objects"
                 ],
                 "summary": "Gets the body of an object",
                 "parameters": [
@@ -243,7 +243,7 @@ const docTemplate = `{
             "delete": {
                 "description": "Delete object from container (permanent)",
                 "tags": [
-                    "object"
+                    "objects"
                 ],
                 "summary": "Delete an object",
                 "parameters": [
@@ -307,7 +307,7 @@ const docTemplate = `{
             "head": {
                 "description": "Returns the metadata/HEAD of an object in a container",
                 "tags": [
-                    "object"
+                    "objects"
                 ],
                 "summary": "Get object metadata",
                 "parameters": [
@@ -430,7 +430,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "Greenfinch NeoFS RESTful API",
-	Description:      "This API serves as a route to communicate with your containers via HTTP/REST",
+	Description:      "This API serves as a route to communicate with your containers via HTTP/REST. You will need to have created a container already. This script will help you do this.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 }

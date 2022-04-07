@@ -72,10 +72,11 @@
                             <button class="btn btn-secondary dropdown-toggle" type="button" id="uploadDropDown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 Dropdown button
                             </button>
-                            <div class="dropdown-menu" aria-labelledby="uploadDropDownButton">
-                                <a class="dropdown-item upload" href="#">multipart/form</a>
+                            <div class="dropdown-menu" aria-labelledby="uploadDropDownButton" id="uploadDropDownButton">
+                                <a class="dropdown-item upload" href="#">multipart/form-data</a>
                                 <a class="dropdown-item upload" href="#">application/json</a>
                             </div>
+                            <span id="content-type-selector"></span>
                         </div>
                     </div>
                     <button class="btn btn-primary" id="uploadButton">Upload</button>
@@ -95,12 +96,13 @@
                         <button class="btn btn-secondary dropdown-toggle" type="button" id="methodDropDown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             Dropdown button
                         </button>
-                        <div class="dropdown-menu" aria-labelledby="methodDropDownButton">
+                        <div class="dropdown-menu" aria-labelledby="methodDropDownButton" id="methodDropDownButton">
                             <a class="dropdown-item method" href="#">META</a>
                             <a class="dropdown-item method" href="#">BODY</a>
                             <a class="dropdown-item method" href="#">LIST</a>
                             <a class="dropdown-item method" href="#">DELETE</a>
                         </div>
+                        <span id="method-type-selector"></span>
                     </div>
                     </div>
                     <div class="input-group mb-3">
@@ -109,7 +111,7 @@
                         </div>
                         <input type="text" class="form-control" id="objectID" aria-describedby="basic-addon3" value="">
                     </div>
-                    <button class="btn btn-primary" id="requestMeta">Make request</button>
+                    <button class="btn btn-primary" id="requestResponse">Make request</button>
                     <button class="btn btn-primary" id="decodeContent">Decode</button>
                     <span>
                         <pre id="metadata"></pre>
@@ -136,12 +138,72 @@
 </body>
 <script>
 
-    function getBearerToken() {
+    let contentTypeUpload, methodTypeUpload = null
+
+    // Size should be given in 'bytes'
+    function generate_random_data(size) {
+        return new Blob([new ArrayBuffer(size)], {type: 'application/octet-stream'});
+    };
+
+    function jsonDataUpload() {
+        const p = document.getElementById("publicKey")
         //HNhjKjd864CKBbce3voBMRu9j95rHCtTzHcycUMwuZTx
         let containerID = document.getElementById("containerID")
         console.log(containerID.value)
+        let signatureArea = document.getElementById("signature").innerText
+        let signature = JSON.parse(signatureArea)
+        let xhttp = new XMLHttpRequest();   // new HttpRequest instance
+
+        xhttp.open("POST", `http://localhost:9000/api/v1/object/${containerID.value}`, true);
+        if (contentTypeUpload == null) {
+            alert("no content type set")
+            return false
+        }
+
+        xhttp.setRequestHeader("X-r", signature.r)
+        xhttp.setRequestHeader("X-s", signature.s)
+        xhttp.setRequestHeader("publicKey", p.value)
+        xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        xhttp.send(JSON.stringify({ "email": "hello@user.com", "response": { "name": "Tester" } }));
+    }
+    function multipartFileUpload() {
         const p = document.getElementById("publicKey")
-        console.log("p", p.value)
+        //HNhjKjd864CKBbce3voBMRu9j95rHCtTzHcycUMwuZTx
+        let containerID = document.getElementById("containerID")
+        console.log(containerID.value)
+        let signatureArea = document.getElementById("signature").innerText
+        let signature = JSON.parse(signatureArea)
+        var formData = new FormData();
+
+        formData.append("username", "Groucho");
+        formData.append("accountnum", 123456); // number 123456 is immediately converted to a string "123456"
+
+        // HTML file input, chosen by user
+        formData.append("file", generate_random_data()); //fileInputElement.files[0]
+
+        // JavaScript file-like object
+        var content = '<a id="a"><b id="b">hey!</b></a>'; // the body of the new file...
+        var blob = new Blob([content], { type: "text/xml"});
+
+        formData.append("webmasterfile", blob);
+
+        var xhttp = new XMLHttpRequest();
+        xhttp.open("POST", `http://localhost:9000/api/v1/object/${containerID.value}`, true);
+        if (contentTypeUpload == null) {
+            alert("no content type set")
+            return false
+        }
+        // xhttp.setRequestHeader("Content-Type", contentTypeUpload);
+        xhttp.setRequestHeader("X-r", signature.r)
+        xhttp.setRequestHeader("X-s", signature.s)
+        xhttp.setRequestHeader("publicKey", p.value)
+        xhttp.send(formData);
+    }
+
+    function getBearerToken() {
+
+        const p = document.getElementById("publicKey")
+
         //1daa689d543606a7c033b7d9cd9ca793189935294f5920ef0a39b3ad0d00f190
         // const publicKey = decryptAccountData(p.value)
         // console.log(publicKey)
@@ -245,9 +307,42 @@
     }
     document.getElementById("getBearerToken").onclick = function() {getBearerToken()};
     document.getElementById("signToken").onclick = function() {signToken()};
-    document.getElementById("requestMeta").onclick = function() {requestMeta()};
-    document.getElementById("decodeContent").onclick = function() {decodeMeta()};
+    document.getElementById("uploadButton").onclick = function() {
+        if (contentTypeUpload == null) {
+            alert("no content type selected")
+            return false
+        }
+        //now based on the content type and the method type, we make a decision
+        if (contentTypeUpload == "multipart/form-data") {
+            console.log("handling multipart")
+            multipartFileUpload()
+        } else if (contentTypeUpload == "application/json") {
+            console.log("handling json")
+            jsonDataUpload()
 
+        }
+        requestMeta()
+    };
+    document.getElementById("decodeContent").onclick = function() {decodeMeta()};
+    const uploadDropDownSelector = document.getElementById("uploadDropDownButton")
+    // let elements = document.getElementsByClassName('class');
+
+    for (let i = 0, len = uploadDropDownSelector.length; i < len; i++) {
+        let child = uploadDropDownSelector[i].querySelector('.upload');
+        console.log(child.text())
+        //do stuff with child
+    }
+        // .querySelector("a").onclick = function() {
+        var txt= ($(this).text());
+        contentTypeUpload = txt
+        console.log("txt ", txt)
+        document.getElementById("content-type-selector").textContent = txt
+    };
+    document.getElementById("methodDropDownButton").querySelector("a").onclick = function() {
+        var txt= ($(this).text());
+        methodTypeUpload = txt
+        document.getElementById("method-type-selector").innerText = txt
+    };
     // const account = decryptAccountData("1daa689d543606a7c033b7d9cd9ca793189935294f5920ef0a39b3ad0d00f190")
     // console.log(neofsSign1("Cl8KBAgCEAsSIgog80o9tLn2bvmLLwCsDHhqj3XEBXwJ7Hr4Um04mvMw0tsaKQgDEAEiIxIhAvLHs6eoMwB1SpNsJFXC8et/XcCDnXNn6aakUC9BGq61GggIAxACIgIIAxIbChk1wCscYdTTROMkIzHE76olVgEs0Xdp3/biGgMI3iU="))
 </script>

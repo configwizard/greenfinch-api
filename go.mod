@@ -15,10 +15,10 @@ require (
 )
 
 require (
-	github.com/configwizard/gaspump-api v0.2.6-0.20220312133720-3e14375e3863
+	github.com/configwizard/gaspump-api v0.3.0
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.0
-	github.com/swaggo/http-swagger v1.2.5
+	github.com/swaggo/swag v1.8.1
 )
 
 require (
@@ -30,7 +30,6 @@ require (
 	github.com/btcsuite/btcd v0.22.0-beta // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
-	github.com/flowchartsman/swaggerui v0.0.0-20210303154956-0e71c297862e // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.6 // indirect
 	github.com/go-openapi/spec v0.20.4 // indirect
@@ -55,8 +54,6 @@ require (
 	github.com/prometheus/procfs v0.6.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/swaggo/files v0.0.0-20210815190702-a29dd2bc99b2 // indirect
-	github.com/swaggo/swag v1.8.1 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210305035536-64b5b1c73954 // indirect
 	github.com/urfave/cli v1.22.5 // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
@@ -74,5 +71,3 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
-
-replace github.com/configwizard/gaspump-api => /Users/alex.walker/go/src/github.com/configwizard/gaspump-api
