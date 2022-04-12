@@ -18,6 +18,7 @@ require (
 	github.com/configwizard/gaspump-api v0.3.0
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.0
+	github.com/machinebox/progress v0.2.0
 	github.com/swaggo/swag v1.8.1
 )
 
@@ -71,3 +72,6 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+
+
+replace github.com/configwizard/gaspump-api => /Users/alex.walker/go/src/github.com/configwizard/gaspump-api

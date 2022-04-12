@@ -79,6 +79,8 @@
                             <span id="content-type-selector"></span>
                         </div>
                     </div>
+                    <label for="file">IF MULTIPART, select file</label>
+                    <input type="file" id="file" name="file">
                     <button class="btn btn-primary" id="uploadButton">Upload</button>
                     <span>
                         <pre id="uploadResponse"></pre>
@@ -97,8 +99,8 @@
                             Dropdown button
                         </button>
                         <div class="dropdown-menu" aria-labelledby="methodDropDownButton" id="methodDropDownButton">
-                            <a class="dropdown-item method" href="#">META</a>
-                            <a class="dropdown-item method" href="#">BODY</a>
+                            <a class="dropdown-item method" href="#">HEAD</a>
+                            <a class="dropdown-item method" href="#">GET</a>
                             <a class="dropdown-item method" href="#">LIST</a>
                             <a class="dropdown-item method" href="#">DELETE</a>
                         </div>
@@ -116,6 +118,7 @@
                     <span>
                         <pre id="metadata"></pre>
                         <pre id="decodedContent"></pre>
+                        <div id="displayImage"></div>
                     </span>
                 </div>
             </div>
@@ -168,24 +171,14 @@
     }
     function multipartFileUpload() {
         const p = document.getElementById("publicKey")
-        //HNhjKjd864CKBbce3voBMRu9j95rHCtTzHcycUMwuZTx
         let containerID = document.getElementById("containerID")
         console.log(containerID.value)
         let signatureArea = document.getElementById("signature").innerText
         let signature = JSON.parse(signatureArea)
-        var formData = new FormData();
-
-        formData.append("username", "Groucho");
-        formData.append("accountnum", 123456); // number 123456 is immediately converted to a string "123456"
-
+        let formData = new FormData();
+        let f = $('input[type=file]')[0].files[0]
         // HTML file input, chosen by user
-        formData.append("file", generate_random_data()); //fileInputElement.files[0]
-
-        // JavaScript file-like object
-        var content = '<a id="a"><b id="b">hey!</b></a>'; // the body of the new file...
-        var blob = new Blob([content], { type: "text/xml"});
-
-        formData.append("webmasterfile", blob);
+        formData.append("file", f); //fileInputElement.files[0]
 
         var xhttp = new XMLHttpRequest();
         xhttp.open("POST", `http://localhost:9000/api/v1/object/${containerID.value}`, true);
@@ -223,7 +216,7 @@
         const decodedContent = window.atob(content)
         document.getElementById("decodedContent").innerText = decodedContent
     }
-    function requestMeta() {
+    function requestData() {
         const p = document.getElementById("publicKey")
         let containerID = document.getElementById("containerID")
         let objectID = document.getElementById("objectID")
@@ -253,7 +246,34 @@
                 document.getElementById("metadata").innerText = headerMap["neofs-meta"]
             }
         };
-        xhttp.open("HEAD", `http://localhost:9000/api/v1/object/${containerID.value}/${objectID.value}`, true);
+
+        xhttp.onload = function(e) {
+            if (this.status == 200) {
+                var blob = this.response;
+                var src = document.getElementById("displayImage");
+                var img = document.createElement("img");
+                img.src = window.URL.createObjectURL(blob);
+                // document.getElementById("myImage").src = window.URL.createObjectURL(blob);
+                src.appendChild(img);
+            }
+        };
+
+        //
+        // xhttp.onload = function() {
+        //     console.log(xhttp.response);
+        //     console.log(xhttp.responseText)
+        //     var src = document.getElementById("displayImage");
+        //     var img = document.createElement("img");
+        //     img.src = "data:image/jpeg;base64," + btoa(xhttp.responseText);
+        //     src.appendChild(img);
+        // };
+        // xhttp.onload = function() {
+        //     var byteArray = new Uint8Array(xhttp.response);
+        //     var base64Data = btoa(String.fromCharCode.apply(null, byteArray));
+        //     document.getElementById("finalImage").src = "data:image/png;base64," + base64Data;
+        // };
+        xhttp.responseType = "blob";
+        xhttp.open(methodTypeUpload, `http://localhost:9000/api/v1/object/${containerID.value}/${objectID.value}`, true);
         xhttp.setRequestHeader("publicKey", p.value)
         xhttp.setRequestHeader("X-r", signature.r)
         xhttp.setRequestHeader("X-s", signature.s)
@@ -321,28 +341,25 @@
             jsonDataUpload()
 
         }
-        requestMeta()
     };
-    document.getElementById("decodeContent").onclick = function() {decodeMeta()};
-    const uploadDropDownSelector = document.getElementById("uploadDropDownButton")
-    // let elements = document.getElementsByClassName('class');
-
-    for (let i = 0, len = uploadDropDownSelector.length; i < len; i++) {
-        let child = uploadDropDownSelector[i].querySelector('.upload');
-        console.log(child.text())
-        //do stuff with child
+    document.getElementById("requestResponse").onclick = function() {
+        requestData()
     }
-        // .querySelector("a").onclick = function() {
-        var txt= ($(this).text());
-        contentTypeUpload = txt
-        console.log("txt ", txt)
-        document.getElementById("content-type-selector").textContent = txt
-    };
-    document.getElementById("methodDropDownButton").querySelector("a").onclick = function() {
-        var txt= ($(this).text());
-        methodTypeUpload = txt
-        document.getElementById("method-type-selector").innerText = txt
-    };
+    document.getElementById("decodeContent").onclick = function() {decodeMeta()};
+
+    const uploadTypeSelector = document.querySelector("#uploadDropDownButton");
+    uploadTypeSelector.addEventListener("click", (e) => {
+        e.preventDefault();
+        contentTypeUpload = e.target.innerText
+        document.getElementById("content-type-selector").textContent = e.target.innerText
+    });
+    const methodTypeSelector = document.querySelector("#methodDropDownButton");
+    methodTypeSelector.addEventListener("click", (e) => {
+        e.preventDefault();
+        methodTypeUpload = e.target.innerText
+        document.getElementById("method-type-selector").textContent = e.target.innerText
+    });
+
     // const account = decryptAccountData("1daa689d543606a7c033b7d9cd9ca793189935294f5920ef0a39b3ad0d00f190")
     // console.log(neofsSign1("Cl8KBAgCEAsSIgog80o9tLn2bvmLLwCsDHhqj3XEBXwJ7Hr4Um04mvMw0tsaKQgDEAEiIxIhAvLHs6eoMwB1SpNsJFXC8et/XcCDnXNn6aakUC9BGq61GggIAxACIgIIAxIbChk1wCscYdTTROMkIzHE76olVgEs0Xdp3/biGgMI3iU="))
 </script>

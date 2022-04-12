@@ -7,10 +7,12 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
+	client2 "github.com/configwizard/gaspump-api/pkg/client"
 	"github.com/configwizard/gaspump-api/pkg/object"
 	"github.com/configwizard/greenfinch-api/api/tokens"
 	"github.com/configwizard/greenfinch-api/api/utils"
 	"github.com/go-chi/chi/v5"
+	"github.com/machinebox/progress"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
 	"github.com/nspcc-dev/neofs-sdk-go/client"
 	cid "github.com/nspcc-dev/neofs-sdk-go/container/id"
@@ -19,12 +21,12 @@ import (
 	"github.com/nspcc-dev/neofs-sdk-go/owner"
 	"github.com/nspcc-dev/neofs-sdk-go/token"
 	"io"
-	"io/ioutil"
 	"log"
 	"math/big"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -199,7 +201,7 @@ type Object struct {
 // @Failure      400  {object}  HTTPClientError
 // @Failure      502  {object}  HTTPServerError
 // @Router       /object/{containerId}/{objectId} [get]
-func GetObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.HandlerFunc{
+func GetObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.HandlerFunc{
 	return func(w http.ResponseWriter, r *http.Request) {
 		cntID := cid.ID{}
 		err := cntID.Parse(chi.URLParam(r, "containerId"))
@@ -228,18 +230,50 @@ func GetObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.Handler
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		bearer, err := getBearerToken(ctx, cli, cntID, k, serverPublicKey, sigR, sigS)
+		bearer, err := getBearerToken(ctx, cli, cntID, k, serverPrivateKey.PublicKey(), sigR, sigS)
 		if err != nil {
 			log.Println("cannot generate bearer token", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		ioWriter := (io.Writer)(w)
-		_, err = object.GetObject(ctx, cli, objID, cntID, bearer, nil, &ioWriter)
+		serverOwnerID := owner.NewIDFromPublicKey((*ecdsa.PublicKey)(serverPrivateKey.PublicKey()))
+		getSession, err := client2.CreateSessionWithObjectGetContext(ctx, cli, serverOwnerID, &cntID, utils.GetHelperTokenExpiry(ctx, cli), &serverPrivateKey.PrivateKey)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var content *object2.Object
+		content, err = object.GetObjectMetaData(ctx, cli, objID, cntID, bearer, nil)
+		if err != nil {
+			log.Println("cannot retrieve metadata", err)
+			http.Error(w, err.Error(), 502)
+			return
+		}
+		//f, err := os.Create(filepath.Join("/Users/alex.walker", "tmpFile.jpg"))
+		//defer f.Close()
+		//if err != nil {
+		//	log.Fatal(err)
+		//}
+		c := progress.NewWriter(w)
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			progressChan := progress.NewTicker(ctx, c, int64(content.PayloadSize()), 50*time.Millisecond)
+			for p := range progressChan {
+				print("time")
+				fmt.Printf("\r%v remaining...", p.Remaining().Round(250*time.Millisecond))
+			}
+		}()
+
+		ioWriter := (io.Writer)(c)
+		obj, err := object.GetObject(ctx, cli, objID, cntID, bearer, getSession, &ioWriter)
 		if err != nil {
 			http.Error(w, err.Error(), 502)
 			return
 		}
+		wg.Wait()
+		fmt.Println("obj", obj.ID())
 	}
 }
 
@@ -261,7 +295,7 @@ func GetObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.Handler
 // @Failure 400 {object} HTTPClientError
 // @Failure 404 {object} HTTPServerError
 // @Router /object/{containerId} [post]
-func UploadObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.HandlerFunc {
+func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cntID := cid.ID{}
 		err := cntID.Parse(chi.URLParam(r, "containerId"))
@@ -284,7 +318,7 @@ func UploadObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.Hand
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		bearer, err := getBearerToken(ctx, cli, cntID, k, serverPublicKey, sigR, sigS)
+		bearer, err := getBearerToken(ctx, cli, cntID, k, serverPrivateKey.PublicKey(), sigR, sigS)
 		if err != nil {
 			log.Println("cannot generate bearer token", err)
 			http.Error(w, err.Error(), 400)
@@ -320,6 +354,7 @@ func UploadObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.Hand
 		contentTypeAttr.SetKey("Content-Type")
 		contentTypeAttr.SetValue(r.Header.Get("Content-Type"))
 		fmt.Println("processing ", r.Header.Get("Content-Type"))
+		wg := sync.WaitGroup{}
 		if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 			fmt.Println("application/json")
 			//in this case, we are just storing the content as json bytes in the object
@@ -365,25 +400,35 @@ func UploadObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.Hand
 			fileNameAttr.SetKey(object2.AttributeFileName)
 			fileNameAttr.SetValue(handler.Filename)
 			attributes = append(attributes, fileNameAttr)
-			ioReader = (io.Reader)(file)
+			c := progress.NewReader(file)
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				progressChan := progress.NewTicker(ctx, c, handler.Size, 50*time.Millisecond)
+				for p := range progressChan {
+					print("time")
+					fmt.Printf("\r%v remaining...", p.Remaining().Round(250*time.Millisecond))
+				}
+			}()
+			ioReader = (io.Reader)(c)
 		} else {
 			fmt.Println("no valid content type")
 			http.Error(w, "no valid content type", 502)
 			return
 		}
-		buf, err := ioutil.ReadAll(ioReader)
+
+		serverOwnerID := owner.NewIDFromPublicKey((*ecdsa.PublicKey)(serverPrivateKey.PublicKey()))
+		putSession, err := client2.CreateSessionWithObjectPutContext(ctx, cli, serverOwnerID, cntID, utils.GetHelperTokenExpiry(ctx, cli), &serverPrivateKey.PrivateKey)
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Printf("buf ", buf)
-		_ = kOwner
-		_ = bearer
-		//id, err := object.UploadObject(ctx, cli, cntID, kOwner, attributes, bearer, nil, &ioReader)
-		//if err != nil {
-		//	http.Error(w, err.Error(), 502)
-		//	return
-		//}id.String()
-		w.Write(buf)
+		id, err := object.UploadObject(ctx, cli, cntID, kOwner, attributes, bearer, putSession, &ioReader)
+		if err != nil {
+			http.Error(w, err.Error(), 502)
+			return
+		}
+		wg.Wait()
+		w.Write([]byte(id.String()))
 	}
 }
 
