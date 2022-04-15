@@ -141,13 +141,6 @@ func ListObjectsInContainer(cli *client.Client, serverPublicKey *keys.PublicKey)
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		objID := oid.ID{}
-		err = objID.Parse(chi.URLParam(r, "objectId"))
-		if err != nil {
-			log.Println("no object id", err)
-			http.Error(w, err.Error(), 400)
-			return
-		}
 		ctx := r.Context()
 		k, err, code := utils.GetPublicKey(ctx)
 		if err != nil {
@@ -169,12 +162,20 @@ func ListObjectsInContainer(cli *client.Client, serverPublicKey *keys.PublicKey)
 		}
 		var filters = object2.SearchFilters{}
 		filters.AddRootFilter()
-		list, err := object.QueryObjects(ctx, cli, cntID, filters, bearer, nil)
+		oids, err := object.QueryObjects(ctx, cli, cntID, filters, bearer, nil)
 		if err != nil {
 			http.Error(w, err.Error(), 502)
 			return
 		}
-		marshal, err := json.Marshal(list)
+		for _, v := range oids {
+			fmt.Printf("oid %v", v.String())
+		}
+
+		var stringList []string
+		for _, v := range oids {
+			stringList = append(stringList, v.String())
+		}
+		marshal, err := json.Marshal(stringList)
 		if err != nil {
 			http.Error(w, err.Error(), 502)
 			return
@@ -324,12 +325,11 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 			http.Error(w, err.Error(), 400)
 			return
 		}
-
 		var attributes []*object2.Attribute
 		//handle attributes
-		parsedAttributes := make(map[string]string)
+		parsedAttributes := map[string]string{}
 		attributesStr := r.Header.Get("NEOFS-ATTRIBUTES")
-		fmt.Println("attributes", attributesStr)
+		fmt.Println("received attr", attributesStr)
 		if attributesStr != "" {
 			if err := json.Unmarshal([]byte(attributesStr), &parsedAttributes); err != nil {
 				http.Error(w, "invalid attributes"+err.Error(), 400)
@@ -349,12 +349,12 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 		timeStampAttr.SetKey(object2.AttributeTimestamp)
 		timeStampAttr.SetValue(strconv.FormatInt(time.Now().Unix(), 10))
 		attributes = append(attributes, timeStampAttr)
-		var ioReader io.Reader
 		contentTypeAttr := new(object2.Attribute)
 		contentTypeAttr.SetKey("Content-Type")
 		contentTypeAttr.SetValue(r.Header.Get("Content-Type"))
-		fmt.Println("processing ", r.Header.Get("Content-Type"))
+
 		wg := sync.WaitGroup{}
+		var ioReader io.Reader
 		if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 			fmt.Println("application/json")
 			//in this case, we are just storing the content as json bytes in the object
@@ -366,18 +366,6 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 			ioReader = (io.Reader)(r.Body)
 		} else if strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
 			fmt.Println("multipart management")
-			//<form
-			//enctype="multipart/form-data"
-			//action="http://localhost:8080/upload"
-			//method="post"
-			//>
-			//<input type="file" name="file" />
-			//<input type="submit" value="upload" />
-			//</form>
-			// FormFile returns the first file for the given key `file`
-			// it also returns the FileHeader so we can get the Filename,
-			// the Header and the size of the file
-			//upload by multipart
 			// Parse our multipart form, 10 << 20 specifies a maximum
 			// upload of 10 MB files.
 			//10 is the number, and we want to shift that 20 places for 10MB
@@ -406,7 +394,6 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 				defer wg.Done()
 				progressChan := progress.NewTicker(ctx, c, handler.Size, 50*time.Millisecond)
 				for p := range progressChan {
-					print("time")
 					fmt.Printf("\r%v remaining...", p.Remaining().Round(250*time.Millisecond))
 				}
 			}()
@@ -414,16 +401,20 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 		} else {
 			fmt.Println("no valid content type")
 			http.Error(w, "no valid content type", 502)
+			http.Error(w, err.Error(), 400)
 			return
 		}
 
 		serverOwnerID := owner.NewIDFromPublicKey((*ecdsa.PublicKey)(serverPrivateKey.PublicKey()))
 		putSession, err := client2.CreateSessionWithObjectPutContext(ctx, cli, serverOwnerID, cntID, utils.GetHelperTokenExpiry(ctx, cli), &serverPrivateKey.PrivateKey)
 		if err != nil {
-			log.Fatal(err)
+			fmt.Println("session error", err)
+			http.Error(w, err.Error(), 502)
+			return
 		}
 		id, err := object.UploadObject(ctx, cli, cntID, kOwner, attributes, bearer, putSession, &ioReader)
 		if err != nil {
+			fmt.Println("upload error", err)
 			http.Error(w, err.Error(), 502)
 			return
 		}
@@ -445,8 +436,9 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 // @Failure 400 {object} HTTPClientError
 // @Failure 404 {object} HTTPServerError
 // @Router /object/{containerId}/{objectId} [delete]
-func DeleteObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.HandlerFunc {
+func DeleteObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("chi.", r.RequestURI)
 		cntID := cid.ID{}
 		err := cntID.Parse(chi.URLParam(r, "containerId"))
 		if err != nil {
@@ -474,13 +466,18 @@ func DeleteObject(cli *client.Client, serverPublicKey *keys.PublicKey) http.Hand
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		bearer, err := getBearerToken(ctx, cli, cntID, k, serverPublicKey, sigR, sigS)
+		bearer, err := getBearerToken(ctx, cli, cntID, k, serverPrivateKey.PublicKey(), sigR, sigS)
 		if err != nil {
 			log.Println("cannot generate bearer token", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		res, err := object.DeleteObject(ctx, cli, objID, cntID, bearer, nil)
+		serverOwnerID := owner.NewIDFromPublicKey((*ecdsa.PublicKey)(serverPrivateKey.PublicKey()))
+		deleteSession, err := client2.CreateSessionWithContainerDeleteContext(ctx, cli, serverOwnerID, cntID, utils.GetHelperTokenExpiry(ctx, cli), &serverPrivateKey.PrivateKey)
+		if err != nil {
+			log.Fatal(err)
+		}
+		res, err := object.DeleteObject(ctx, cli, objID, cntID, bearer, deleteSession)
 		if err != nil {
 			log.Println("deleting object failed", err)
 			http.Error(w, err.Error(), 400)

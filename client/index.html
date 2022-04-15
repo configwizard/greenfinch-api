@@ -19,6 +19,31 @@
 <div class="container">
     <!-- Content here -->
     <div class="row">
+        <div class="col-sm-12">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title">Greenfinch API.</h3>
+                    <h5 class="card-text">This is an HTTP API into the NeoFS file system</h5>
+                    <p>Currently this has initial support for object management. Please see:</p>
+                    <ul>
+                        <li><a href="https://developers.neo.org/docs/n3/neofs/introduction/Overview">The Neo developer documentation for an overview</a></li>
+                        <li><a href="https://gist.github.com/amlwwalker/407a04c9b21915eee067a5531394f542">The Gist here to see how to interact from javascript and how to create a container</a></li>
+                        <li><a href="https://greenfinch-api.onrender.com/swagger/">The swagger documentation to explain how the API works</a></li>
+                    </ul>
+                    <p>In short, this API allows a container owner to interact with their container and objects over HTTP without sharing their private key. <br />You need to have
+                    <ul>
+                    <li>A containerID and the public key of the container owner. Send these to the API to receive a bearer token.</li>
+                    <li>Use this token and your private key to sign the bearer token.</li>
+                    <li>Now you can upload an object</li>
+                    <li>Or you can retrieve details of an object</li>
+                    <li>Or you can list all objects</li>
+                    <li>Or you can delete an object</li>
+                </ul></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
         <div class="col-sm-6">
             <div class="card">
                 <div class="card-body">
@@ -79,8 +104,26 @@
                             <span id="content-type-selector"></span>
                         </div>
                     </div>
-                    <label for="file">IF MULTIPART, select file</label>
+                    <div id="multipart-upload" style="display: none;">
+                    <label for="file">choose a file to upload</label>
                     <input type="file" id="file" name="file">
+                    </div>
+                    <div id="json-upload" style="display: none;">
+                        <label for="json-attributes">set the attributes for the upload</label><br />
+                        <textarea rows="4" cols="50" id="json-attributes">
+{
+    "FileName":"some-json-content.json"
+}
+                        </textarea><br />
+                        <label for="json-content">set the data to upload</label><br />
+                        <textarea rows="4" cols="50" id="json-content">
+{
+    "title":"The complete works of William Shakespeare",
+    "birth": "26.04.1564",
+    "died": "23.04.1616"
+}
+                        </textarea>
+                    </div>
                     <button class="btn btn-primary" id="uploadButton">Upload</button>
                     <span>
                         <pre id="uploadResponse"></pre>
@@ -123,25 +166,13 @@
                 </div>
             </div>
         </div>
-<!--        <div class="col-sm-6">-->
-<!--            <div class="card">-->
-<!--                <div class="card-body">-->
-<!--                    <h5 class="card-title">4. View the content</h5>-->
-<!--                    <p class="card-text">In this case, the content was sent as a response header due to `"HEAD"` METHOD requests don't respond with a body. The content needs decoding</p>-->
-<!--                    <button class="btn btn-primary" id="decodeContent">Decode</button>-->
-<!--                    <span>-->
-<!--                        <pre id="decodedContent"></pre>-->
-<!--                    </span>-->
-<!--                </div>-->
-<!--            </div>-->
-<!--        </div>-->
     </div>
 </div>
 
 </body>
 <script>
-
-    let contentTypeUpload, methodTypeUpload = null
+    const domain = "https://greenfinch-api.onrender.com"
+    let contentTypeUpload, contentTypeDownload, methodTypeUpload = null
 
     // Size should be given in 'bytes'
     function generate_random_data(size) {
@@ -150,24 +181,27 @@
 
     function jsonDataUpload() {
         const p = document.getElementById("publicKey")
-        //HNhjKjd864CKBbce3voBMRu9j95rHCtTzHcycUMwuZTx
         let containerID = document.getElementById("containerID")
         console.log(containerID.value)
         let signatureArea = document.getElementById("signature").innerText
         let signature = JSON.parse(signatureArea)
-        let xhttp = new XMLHttpRequest();   // new HttpRequest instance
+        let xhttp = new XMLHttpRequest();
 
-        xhttp.open("POST", `http://localhost:9000/api/v1/object/${containerID.value}`, true);
+        xhttp.open("POST", `${domain}/api/v1/object/${containerID.value}`, true);
         if (contentTypeUpload == null) {
             alert("no content type set")
             return false
         }
-
         xhttp.setRequestHeader("X-r", signature.r)
         xhttp.setRequestHeader("X-s", signature.s)
         xhttp.setRequestHeader("publicKey", p.value)
+        //add attributes to the request
+        const attributes = document.getElementById("json-attributes").value
+        console.log(attributes)
+        xhttp.setRequestHeader("NEOFS-ATTRIBUTES", attributes.replace(/(\r\n|\n|\r)/gm, ""))
         xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-        xhttp.send(JSON.stringify({ "email": "hello@user.com", "response": { "name": "Tester" } }));
+        const jsonContent = document.getElementById("json-content").value.replace(/(\r\n|\n|\r)/gm, "")
+        xhttp.send(jsonContent);
     }
     function multipartFileUpload() {
         const p = document.getElementById("publicKey")
@@ -181,25 +215,20 @@
         formData.append("file", f); //fileInputElement.files[0]
 
         var xhttp = new XMLHttpRequest();
-        xhttp.open("POST", `http://localhost:9000/api/v1/object/${containerID.value}`, true);
+        xhttp.open("POST", `${domain}/api/v1/object/${containerID.value}`, true);
         if (contentTypeUpload == null) {
             alert("no content type set")
             return false
         }
-        // xhttp.setRequestHeader("Content-Type", contentTypeUpload);
         xhttp.setRequestHeader("X-r", signature.r)
         xhttp.setRequestHeader("X-s", signature.s)
         xhttp.setRequestHeader("publicKey", p.value)
+        xhttp.setRequestHeader("Content-Type", "multipart/form-data");
         xhttp.send(formData);
     }
 
     function getBearerToken() {
-
         const p = document.getElementById("publicKey")
-
-        //1daa689d543606a7c033b7d9cd9ca793189935294f5920ef0a39b3ad0d00f190
-        // const publicKey = decryptAccountData(p.value)
-        // console.log(publicKey)
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 200) {
@@ -207,7 +236,7 @@
                 document.getElementById("token").innerHTML = xhttp.responseText;
             }
         };
-        xhttp.open("GET", `http://localhost:9000/api/v1/bearer/${containerID.value}`, true);
+        xhttp.open("GET", `${domain}/api/v1/bearer/${containerID.value}`, true);
         xhttp.setRequestHeader("publicKey", p.value)
         xhttp.send();
     }
@@ -217,6 +246,11 @@
         document.getElementById("decodedContent").innerText = decodedContent
     }
     function requestData() {
+
+        if (methodTypeUpload == null) {
+            console.log("no method set")
+            return
+        }
         const p = document.getElementById("publicKey")
         let containerID = document.getElementById("containerID")
         let objectID = document.getElementById("objectID")
@@ -228,12 +262,7 @@
             if (this.readyState == this.HEADERS_RECEIVED) {
                 // Get the raw header string
                 var headers = xhttp.getAllResponseHeaders();
-
-                console.log("raw headers")
-                // Convert the header string into an array
-                // of individual headers
                 var arr = headers.trim().split(/[\r\n]+/);
-
                 // Create a map of header names to values
                 var headerMap = {};
                 arr.forEach(function (line) {
@@ -242,38 +271,39 @@
                     var value = parts.join(': ');
                     headerMap[header] = value;
                 });
-                console.log("Headers", headerMap)
                 document.getElementById("metadata").innerText = headerMap["neofs-meta"]
             }
         };
 
         xhttp.onload = function(e) {
             if (this.status == 200) {
-                var blob = this.response;
-                var src = document.getElementById("displayImage");
-                var img = document.createElement("img");
-                img.src = window.URL.createObjectURL(blob);
-                // document.getElementById("myImage").src = window.URL.createObjectURL(blob);
-                src.appendChild(img);
+                //little bit of a hack for this demo.
+                //now based on the content type and the method type, we make a decision
+                if (contentTypeUpload == "multipart/form-data") {
+                    console.log("assuming a blob")
+                    xhttp.responseType = "blob";
+                    var blob = this.response;
+                    var src = document.getElementById("displayImage");
+                    var img = document.createElement("img");
+                    img.src = window.URL.createObjectURL(blob);
+                    src.appendChild(img);
+                } else if (contentTypeUpload == "application/json") {
+                    console.log("assuming JSON")
+                    console.log(this.response, this.responseText)
+                    document.getElementById("metadata").innerText = this.responseText
+                }
+
             }
         };
 
-        //
-        // xhttp.onload = function() {
-        //     console.log(xhttp.response);
-        //     console.log(xhttp.responseText)
-        //     var src = document.getElementById("displayImage");
-        //     var img = document.createElement("img");
-        //     img.src = "data:image/jpeg;base64," + btoa(xhttp.responseText);
-        //     src.appendChild(img);
-        // };
-        // xhttp.onload = function() {
-        //     var byteArray = new Uint8Array(xhttp.response);
-        //     var base64Data = btoa(String.fromCharCode.apply(null, byteArray));
-        //     document.getElementById("finalImage").src = "data:image/png;base64," + base64Data;
-        // };
-        xhttp.responseType = "blob";
-        xhttp.open(methodTypeUpload, `http://localhost:9000/api/v1/object/${containerID.value}/${objectID.value}`, true);
+
+        let requestUrl = `${domain}/api/v1/object/${containerID.value}/${objectID.value}`
+        if (methodTypeUpload == "LIST") {
+            methodTypeUpload = "GET"
+            requestUrl = `${domain}/api/v1/object/${containerID.value}`
+        }
+        console.log("final request url", requestUrl)
+        xhttp.open(methodTypeUpload, requestUrl, true);
         xhttp.setRequestHeader("publicKey", p.value)
         xhttp.setRequestHeader("X-r", signature.r)
         xhttp.setRequestHeader("X-s", signature.s)
@@ -296,22 +326,13 @@
     function signToken() {
         const msgStr = document.getElementById("token").innerText
         const msg = JSON.parse(msgStr).token
-        console.log("msg", msg)
         const privKey = document.getElementById("privateKey")
         const account = decryptAccountData(privKey.value)
-        console.log("getting account", account)
-        console.log("msg ", msg)
         const decoededMessage = _base64ToArrayBuffer(msg)
-        console.table("decoededMessage", decoededMessage)
-        // console.log("decoededMessage as string", toHexString(decoededMessage))
-        // console.log("decoeded message", decoededMessage)
-        console.log("sha 512 digest ", sha512.digest(decoededMessage))
-        // console.log("as string", toHexString(sha512.digest(decoededMessage)))
         const curve = Neon.u.getCurve(Neon.u.EllipticCurvePreset.SECP256R1);
         const sig = curve.sign(sha512.digest(decoededMessage), account.privateKey);
-        console.log("verify ", curve.verify(sha512.digest(decoededMessage), sig, Neon.wallet.getPublicKeyFromPrivateKey(account.privateKey)))
+        curve.verify(sha512.digest(decoededMessage), sig, Neon.wallet.getPublicKeyFromPrivateKey(account.privateKey)) ? null : console.error("warning, not able to verify signature")
         const signatureBytes = JSON.stringify(sig.toString())
-        console.log("bytes signature ", signatureBytes)
         let signatureArea = document.getElementById("signature")
         signatureArea.innerText = JSON.stringify(sig)
         return sig;
@@ -339,7 +360,6 @@
         } else if (contentTypeUpload == "application/json") {
             console.log("handling json")
             jsonDataUpload()
-
         }
     };
     document.getElementById("requestResponse").onclick = function() {
@@ -351,6 +371,13 @@
     uploadTypeSelector.addEventListener("click", (e) => {
         e.preventDefault();
         contentTypeUpload = e.target.innerText
+        if (contentTypeUpload == "multipart/form-data") {
+            document.getElementById("multipart-upload").style.display = "inline";
+            document.getElementById("json-upload").style.display = "none";
+        } else if (contentTypeUpload == "application/json") {
+            document.getElementById("json-upload").style.display = "inline";
+            document.getElementById("multipart-upload").style.display = "none";
+        }
         document.getElementById("content-type-selector").textContent = e.target.innerText
     });
     const methodTypeSelector = document.querySelector("#methodDropDownButton");
@@ -359,9 +386,6 @@
         methodTypeUpload = e.target.innerText
         document.getElementById("method-type-selector").textContent = e.target.innerText
     });
-
-    // const account = decryptAccountData("1daa689d543606a7c033b7d9cd9ca793189935294f5920ef0a39b3ad0d00f190")
-    // console.log(neofsSign1("Cl8KBAgCEAsSIgog80o9tLn2bvmLLwCsDHhqj3XEBXwJ7Hr4Um04mvMw0tsaKQgDEAEiIxIhAvLHs6eoMwB1SpNsJFXC8et/XcCDnXNn6aakUC9BGq61GggIAxACIgIIAxIbChk1wCscYdTTROMkIzHE76olVgEs0Xdp3/biGgMI3iU="))
 </script>
 </html>
 

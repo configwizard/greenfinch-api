@@ -206,21 +206,26 @@ func main() {
 		2. now start an api with the server's key
 	 */
 	////
-	os.Setenv("PRIVATE_KEY", "1daa689d543606a7c033b7d9cd9ca793189935294f5920ef0a39b3ad0d00f190")
-	//First obtain client credentials: private key of request owner
-	rawPrivateKey, err := keys.NewPrivateKeyFromHex(os.Getenv("PRIVATE_KEY"))
-	if err != nil {
-		log.Fatal("can't read credentials:", err)
+	var containerOwnerID *owner.ID
+	var containerOwnerClient *client.Client
+	var containerOwnerPrivateKey keys.PrivateKey
+	if *cnt {
+		//First obtain client credentials: private key of request owner
+		rawPrivateKey, err := keys.NewPrivateKeyFromHex(os.Getenv("PRIVATE_KEY"))
+		if err != nil {
+			log.Fatal("can't read credentials:", err)
+		}
+		containerOwnerPrivateKey = keys.PrivateKey{PrivateKey: rawPrivateKey.PrivateKey}
+		rawContainerOwnerPrivateKeyPublicKey, _ := containerOwnerPrivateKey.PublicKey().MarshalJSON()
+		containerOwnerID = owner.NewIDFromPublicKey((*ecdsa.PublicKey)(containerOwnerPrivateKey.PublicKey()))
+		fmt.Println("rawContainerOwnerPrivateKeyPublicKey ", string(rawContainerOwnerPrivateKeyPublicKey)) // this is the public key i am using in javascript
+		//THE SERVER SHOULD OWN THE CONTAINER ?? THEORY 0.1
+		containerOwnerClient, err = createClient(&rawPrivateKey.PrivateKey)
+		if err != nil {
+			log.Fatal("err ", err)
+		}
 	}
-	containerOwnerPrivateKey := keys.PrivateKey{PrivateKey: rawPrivateKey.PrivateKey}
-	rawContainerOwnerPrivateKeyPublicKey, _ := containerOwnerPrivateKey.PublicKey().MarshalJSON()
-	containerOwnerID := owner.NewIDFromPublicKey((*ecdsa.PublicKey)(containerOwnerPrivateKey.PublicKey()))
-	fmt.Println("rawContainerOwnerPrivateKeyPublicKey ", string(rawContainerOwnerPrivateKeyPublicKey)) // this is the public key i am using in javascript
-	//THE SERVER SHOULD OWN THE CONTAINER ?? THEORY 0.1
-	containerOwnerClient, err := createClient(&rawPrivateKey.PrivateKey)
-	if err != nil {
-		log.Fatal("err ", err)
-	}
+
 
 	//First obtain client credentials: private key of request owner
 	apiPrivateKey, err := wallets.GetCredentialsFromPath(*walletPath, "", *password)
@@ -364,7 +369,7 @@ func main() {
 		r.Use(WalletCtx)
 		r.Head("/{containerId}/{objectId}", objects.GetObjectHead(apiClient, serverPrivateKey.PublicKey()))
 		r.Get("/{containerId}", objects.ListObjectsInContainer(apiClient, serverPrivateKey.PublicKey()))
-		r.Delete("/{containerId}/{objectId}", objects.DeleteObject(apiClient, serverPrivateKey.PublicKey()))
+		r.Delete("/{containerId}/{objectId}", objects.DeleteObject(apiClient, &serverPrivateKey))
 		r.Get("/{containerId}/{objectId}", objects.GetObject(apiClient, &serverPrivateKey))
 		r.Post("/{containerId}", objects.UploadObject(apiClient, &serverPrivateKey))
 
