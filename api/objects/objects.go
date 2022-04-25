@@ -13,7 +13,6 @@ import (
 	"github.com/configwizard/greenfinch-api/api/tokens"
 	"github.com/configwizard/greenfinch-api/api/utils"
 	"github.com/go-chi/chi/v5"
-	"github.com/machinebox/progress"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
 	"github.com/nspcc-dev/neofs-sdk-go/client"
 	cid "github.com/nspcc-dev/neofs-sdk-go/container/id"
@@ -28,7 +27,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -245,39 +243,52 @@ func GetObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Handl
 			log.Fatal(err)
 		}
 
-		var content *object2.Object
-		content, err = object.GetObjectMetaData(ctx, cli, objID, cntID, bearer, nil)
-		if err != nil {
-			log.Println("cannot retrieve metadata", err)
-			http.Error(w, err.Error(), 502)
-			return
-		}
+		//var content *object2.Object
+		//content, err = object.GetObjectMetaData(ctx, cli, objID, cntID, bearer, nil)
+		//if err != nil {
+		//	log.Println("cannot retrieve metadata", err)
+		//	http.Error(w, err.Error(), 502)
+		//	return
+		//}
 		//f, err := os.Create(filepath.Join("/Users/alex.walker", "tmpFile.jpg"))
 		//defer f.Close()
 		//if err != nil {
 		//	log.Fatal(err)
 		//}
-		c := progress.NewWriter(w)
-		wg := sync.WaitGroup{}
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			progressChan := progress.NewTicker(ctx, c, int64(content.PayloadSize()), 50*time.Millisecond)
-			for p := range progressChan {
-				print("time")
-				fmt.Printf("\r%v remaining...", p.Remaining().Round(250*time.Millisecond))
-			}
-		}()
+		//c := progress.NewWriter(f)
+		//wg := sync.WaitGroup{}
+		//wg.Add(1)
+		//go func() {
+		//	defer func() {
+		//		fmt.Println("defer")
+		//		wg.Done()
+		//	}()
+		//	progressChan := progress.NewTicker(ctx, c, int64(content.PayloadSize()), 50*time.Millisecond)
+		//	for p := range progressChan {
+		//		fmt.Printf("\r%v remaining...", p.Remaining().Round(250*time.Millisecond))
+		//	}
+		//	fmt.Println("finished")
+		//}()
 
-		ioWriter := (io.Writer)(c)
+		ioWriter := (io.Writer)(w)
+		//var contentType string
+		//for _, v := range content.Attributes() {
+		//	if v.Key() == "Content-Type" {
+		//		contentType = v.Value()
+		//		break
+		//	}
+		//}
+		//contentType = contentType
 		obj, err := object.GetObject(ctx, cli, objID, cntID, bearer, getSession, &ioWriter)
 		if err != nil {
 			http.Error(w, err.Error(), 502)
 			return
 		}
 		fmt.Printf("obj %+v\r\n", obj)
-		wg.Wait()
+		//wg.Wait()
 		fmt.Println("obj", obj.ID())
+		//w.Write(obj.Payload())
+		return
 	}
 }
 
@@ -392,7 +403,7 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 			return
 		} else if strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
 			fmt.Println("multipart management")
-			wg := sync.WaitGroup{}
+			//wg := sync.WaitGroup{}
 			// Parse our multipart form, 10 << 20 specifies a maximum
 			// upload of 10 MB files.
 			//10 is the number, and we want to shift that 20 places for 10MB
@@ -415,16 +426,16 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 			fileNameAttr.SetKey(object2.AttributeFileName)
 			fileNameAttr.SetValue(handler.Filename)
 			attributes = append(attributes, fileNameAttr)
-			c := progress.NewReader(file)
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				progressChan := progress.NewTicker(ctx, c, handler.Size, 50*time.Millisecond)
-				for p := range progressChan {
-					fmt.Printf("\r%v remaining...", p.Remaining().Round(250*time.Millisecond))
-				}
-			}()
-			ioReader = (io.Reader)(c)
+			//c := progress.NewReader(file)
+			//wg.Add(1)
+			//go func() {
+			//	defer wg.Done()
+			//	progressChan := progress.NewTicker(ctx, c, handler.Size, 50*time.Millisecond)
+			//	for p := range progressChan {
+			//		fmt.Printf("\r%v remaining...", p.Remaining().Round(250*time.Millisecond))
+			//	}
+			//}()
+			ioReader = (io.Reader)(file)
 			serverOwnerID := owner.NewIDFromPublicKey((*ecdsa.PublicKey)(serverPrivateKey.PublicKey()))
 			putSession, err := client2.CreateSessionWithObjectPutContext(ctx, cli, serverOwnerID, cntID, utils.GetHelperTokenExpiry(ctx, cli), &serverPrivateKey.PrivateKey)
 			if err != nil {
@@ -438,7 +449,7 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 				http.Error(w, err.Error(), 502)
 				return
 			}
-			wg.Wait()
+			//wg.Wait()
 			w.Write([]byte(id.String()))
 			return
 		}
