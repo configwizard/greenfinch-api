@@ -1,6 +1,7 @@
 package objects
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -21,6 +22,7 @@ import (
 	"github.com/nspcc-dev/neofs-sdk-go/owner"
 	"github.com/nspcc-dev/neofs-sdk-go/token"
 	"io"
+	"io/ioutil"
 	"log"
 	"math/big"
 	"net/http"
@@ -353,7 +355,6 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 		contentTypeAttr.SetKey("Content-Type")
 		contentTypeAttr.SetValue(r.Header.Get("Content-Type"))
 
-		wg := sync.WaitGroup{}
 		var ioReader io.Reader
 		if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 			fmt.Println("application/json")
@@ -363,9 +364,29 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 				http.Error(w, "no filename specified", 400)
 				return
 			}
-			ioReader = (io.Reader)(r.Body)
+			buf, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, "invalid body", 400)
+				return
+			}
+			ioReader = bytes.NewReader(buf)
+			serverOwnerID := owner.NewIDFromPublicKey((*ecdsa.PublicKey)(serverPrivateKey.PublicKey()))
+			putSession, err := client2.CreateSessionWithObjectPutContext(ctx, cli, serverOwnerID, cntID, utils.GetHelperTokenExpiry(ctx, cli), &serverPrivateKey.PrivateKey)
+			if err != nil {
+				fmt.Println("session error", err)
+				http.Error(w, err.Error(), 502)
+				return
+			}
+			id, err := object.UploadObject(ctx, cli, r.Header.Get("Content-Type"), cntID, kOwner, attributes, bearer, putSession, &ioReader)
+			if err != nil {
+				fmt.Println("upload error", err)
+				http.Error(w, err.Error(), 502)
+				return
+			}
+			w.Write([]byte(id.String()))
 		} else if strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
 			fmt.Println("multipart management")
+			wg := sync.WaitGroup{}
 			// Parse our multipart form, 10 << 20 specifies a maximum
 			// upload of 10 MB files.
 			//10 is the number, and we want to shift that 20 places for 10MB
@@ -398,28 +419,25 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 				}
 			}()
 			ioReader = (io.Reader)(c)
-		} else {
-			fmt.Println("no valid content type")
-			http.Error(w, "no valid content type", 502)
-			http.Error(w, err.Error(), 400)
-			return
+			serverOwnerID := owner.NewIDFromPublicKey((*ecdsa.PublicKey)(serverPrivateKey.PublicKey()))
+			putSession, err := client2.CreateSessionWithObjectPutContext(ctx, cli, serverOwnerID, cntID, utils.GetHelperTokenExpiry(ctx, cli), &serverPrivateKey.PrivateKey)
+			if err != nil {
+				fmt.Println("session error", err)
+				http.Error(w, err.Error(), 502)
+				return
+			}
+			id, err := object.UploadObject(ctx, cli, r.Header.Get("Content-Type"), cntID, kOwner, attributes, bearer, putSession, &ioReader)
+			if err != nil {
+				fmt.Println("upload error", err)
+				http.Error(w, err.Error(), 502)
+				return
+			}
+			wg.Wait()
+			w.Write([]byte(id.String()))
 		}
-
-		serverOwnerID := owner.NewIDFromPublicKey((*ecdsa.PublicKey)(serverPrivateKey.PublicKey()))
-		putSession, err := client2.CreateSessionWithObjectPutContext(ctx, cli, serverOwnerID, cntID, utils.GetHelperTokenExpiry(ctx, cli), &serverPrivateKey.PrivateKey)
-		if err != nil {
-			fmt.Println("session error", err)
-			http.Error(w, err.Error(), 502)
-			return
-		}
-		id, err := object.UploadObject(ctx, cli, cntID, kOwner, attributes, bearer, putSession, &ioReader)
-		if err != nil {
-			fmt.Println("upload error", err)
-			http.Error(w, err.Error(), 502)
-			return
-		}
-		wg.Wait()
-		w.Write([]byte(id.String()))
+		fmt.Println("no valid content type")
+		http.Error(w, err.Error(), 400)
+		return
 	}
 }
 

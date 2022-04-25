@@ -15,7 +15,7 @@ require (
 )
 
 require (
-	github.com/configwizard/gaspump-api v0.3.1
+	github.com/configwizard/gaspump-api v0.3.3
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.0
 	github.com/machinebox/progress v0.2.0

@@ -171,7 +171,7 @@
 
 </body>
 <script>
-    const domain = "https://greenfinch-api.onrender.com"
+    const domain = "http://localhost:9000"//"https://greenfinch-api.onrender.com"
     let contentTypeUpload, contentTypeDownload, methodTypeUpload = null
 
     // Size should be given in 'bytes'
@@ -223,7 +223,7 @@
         xhttp.setRequestHeader("X-r", signature.r)
         xhttp.setRequestHeader("X-s", signature.s)
         xhttp.setRequestHeader("publicKey", p.value)
-        xhttp.setRequestHeader("Content-Type", "multipart/form-data");
+        // xhttp.setRequestHeader("Content-Type", "multipart/form-data");
         xhttp.send(formData);
     }
 
