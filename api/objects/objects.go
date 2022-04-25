@@ -275,6 +275,7 @@ func GetObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Handl
 			http.Error(w, err.Error(), 502)
 			return
 		}
+		fmt.Printf("obj %+v\r\n", obj)
 		wg.Wait()
 		fmt.Println("obj", obj.ID())
 	}
@@ -340,9 +341,9 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 		}
 		fmt.Printf("parsed attributes %+v\r\n", parsedAttributes)
 		for k, v := range parsedAttributes {
-			var tmp *object2.Attribute
+			var tmp = new(object2.Attribute)
 			tmp.SetKey(k)
-			tmp.SetKey(v)
+			tmp.SetValue(v)
 			attributes = append(attributes, tmp)
 		}
 
@@ -350,11 +351,11 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 		timeStampAttr := new(object2.Attribute)
 		timeStampAttr.SetKey(object2.AttributeTimestamp)
 		timeStampAttr.SetValue(strconv.FormatInt(time.Now().Unix(), 10))
-		attributes = append(attributes, timeStampAttr)
 		contentTypeAttr := new(object2.Attribute)
 		contentTypeAttr.SetKey("Content-Type")
 		contentTypeAttr.SetValue(r.Header.Get("Content-Type"))
 
+		attributes = append(attributes, []*object2.Attribute{timeStampAttr, contentTypeAttr}...)
 		var ioReader io.Reader
 		if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
 			fmt.Println("application/json")
@@ -377,13 +378,18 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 				http.Error(w, err.Error(), 502)
 				return
 			}
+
+			for _, v := range attributes {
+				fmt.Printf("attributes %+v\r\n", v)
+			}
 			id, err := object.UploadObject(ctx, cli, r.Header.Get("Content-Type"), cntID, kOwner, attributes, bearer, putSession, &ioReader)
 			if err != nil {
 				fmt.Println("upload error", err)
-				http.Error(w, err.Error(), 502)
+				http.Error(w, err.Error(), 400)
 				return
 			}
 			w.Write([]byte(id.String()))
+			return
 		} else if strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
 			fmt.Println("multipart management")
 			wg := sync.WaitGroup{}
@@ -434,6 +440,7 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 			}
 			wg.Wait()
 			w.Write([]byte(id.String()))
+			return
 		}
 		fmt.Println("no valid content type")
 		http.Error(w, err.Error(), 400)

@@ -3,8 +3,8 @@
     <script src="https://unpkg.com/@cityofzion/neon-js@next"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha512/0.8.0/sha512.min.js" integrity="sha512-KUrAWA1oxsWKHBaA2mlZyRuR8zzzHHYgpDfkfPrT3FhlZ4YdXbXyE89VHI6WmWradSHtuZjLyLAMP2F7IWK4JQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<!--    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>-->
+<!--    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>-->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
 <style>
     pre {
@@ -77,7 +77,7 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text">private key</span>
                         </div>
-                        <input type="text" class="form-control" id="privateKey" aria-describedby="basic-addon3" value="">
+                        <input type="password" class="form-control" id="privateKey" aria-describedby="basic-addon3" value="">
                     </div>
                     <button class="btn btn-primary" id="signToken">Sign Token</button>
                     <span>
@@ -179,6 +179,7 @@
         return new Blob([new ArrayBuffer(size)], {type: 'application/octet-stream'});
     };
 
+    //consider using multipart https://stackoverflow.com/questions/50784370/javascript-create-a-file-out-of-json-object-and-use-it-in-a-formdata
     function jsonDataUpload() {
         const p = document.getElementById("publicKey")
         let containerID = document.getElementById("containerID")
@@ -259,9 +260,11 @@
         let signature = JSON.parse(signatureArea)
         let xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() {
+            console.log("state change", this.readyState, this.HEADERS_RECEIVED)
             if (this.readyState == this.HEADERS_RECEIVED) {
                 // Get the raw header string
                 var headers = xhttp.getAllResponseHeaders();
+                console.log("headers", headers)
                 var arr = headers.trim().split(/[\r\n]+/);
                 // Create a map of header names to values
                 var headerMap = {};
@@ -271,12 +274,30 @@
                     var value = parts.join(': ');
                     headerMap[header] = value;
                 });
+                console.log("metadata", headerMap["neofs-meta"])
                 document.getElementById("metadata").innerText = headerMap["neofs-meta"]
             }
         };
 
         xhttp.onload = function(e) {
             if (this.status == 200) {
+                // Get the raw header string
+                // if (this.readyState == this.HEADERS_RECEIVED) {
+                //     // Get the raw header string
+                //     var headers = xhttp.getAllResponseHeaders();
+                //     console.log("headers", headers)
+                //     var arr = headers.trim().split(/[\r\n]+/);
+                //     // Create a map of header names to values
+                //     var headerMap = {};
+                //     arr.forEach(function (line) {
+                //         var parts = line.split(': ');
+                //         var header = parts.shift();
+                //         var value = parts.join(': ');
+                //         headerMap[header] = value;
+                //     });
+                //     console.log("metadata", headerMap["neofs-meta"])
+                //     document.getElementById("metadata").innerText = headerMap["neofs-meta"]
+                // }
                 //little bit of a hack for this demo.
                 //now based on the content type and the method type, we make a decision
                 if (contentTypeUpload == "multipart/form-data") {
@@ -290,6 +311,7 @@
                 } else if (contentTypeUpload == "application/json") {
                     console.log("assuming JSON")
                     console.log(this.response, this.responseText)
+                    console.log("text", this.responseText)
                     document.getElementById("metadata").innerText = this.responseText
                 }
 
@@ -338,6 +360,7 @@
         return sig;
     }
     function decryptAccountData(privateKey) {
+        //perhaps this should require your password
         const myAccount = new Neon.wallet.Account(
             privateKey
         );
