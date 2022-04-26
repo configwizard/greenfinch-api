@@ -43,6 +43,15 @@
                     <li>Or you can list all objects</li>
                     <li>Or you can delete an object</li>
                 </ul></p>
+                    <p><b>Note</b>If you are running this API yourself, then the <pre>HEAD / </pre> HTTP request will return just the metadata for an object, however for some reason the api.greenfinch.app hosting service is converting <pre>HEAD</pre> requests to GET requests. As a result, to get the meta data you can retrieve it from the <pre>NEOFS-META</pre> header. It is base64 encoded</p>
+
+                    <h3>Roadmap</h3>
+                    <ul>
+                        <li>Container management (creation/deletion/list/sharing)</li>
+                        <li>Larger objects</li>
+                        <li>Search attributes</li>
+                        <li>Shared library (.so files)</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -148,7 +157,7 @@
                             Select Method
                         </button>
                         <div class="dropdown-menu" aria-labelledby="methodDropDownButton" id="methodDropDownButton">
-                            <a class="dropdown-item method" href="#">HEAD</a>
+<!--                            <a class="dropdown-item method" href="#">HEAD</a>-->
                             <a class="dropdown-item method" href="#">GET</a>
                             <a class="dropdown-item method" href="#">LIST</a>
                             <a class="dropdown-item method" href="#">DELETE</a>
@@ -177,7 +186,7 @@
 
 </body>
 <script>
-    const domain = "https://api.greenfinch.app"
+    const domain = "https://api.greenfinch.app"//"http://localhost:9000"
     let contentTypeUpload, contentTypeDownload, methodTypeUpload = null
 
     // // Size should be given in 'bytes'

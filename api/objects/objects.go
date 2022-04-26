@@ -247,7 +247,14 @@ func GetObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Handl
 			http.Error(w, err.Error(), 502)
 			return
 		}
-
+		response, err := content.MarshalJSON()
+		if err != nil {
+			log.Println("cannot marhsal metadata", err)
+			http.Error(w, err.Error(), 502)
+			return
+		}
+		rEnc := b64.StdEncoding.EncodeToString(response)
+		w.Header().Set("NEOFS-META", rEnc)
 		ioWriter := (io.Writer)(w)
 		obj, err := object.GetObject(ctx, cli, int(content.PayloadSize()), objID, cntID, bearer, getSession, &ioWriter)
 		if err != nil {
