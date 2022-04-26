@@ -264,7 +264,7 @@ func GetObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Handl
 
 // UploadObject godoc
 // @Summary Upload an object
-// @Description Upload object, depending on request content type, defines the upload type. Max upload size 32 MB
+// @Description Upload object - send content as multipart/form data in the body of the request
 // @Tags         objects
 // @Param        containerId   path      string  true  "The ID of the container to get the object metadata from"
 // @Param       publicKey header string true "Public Key"
