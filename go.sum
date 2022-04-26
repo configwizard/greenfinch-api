@@ -59,6 +59,8 @@ github.com/cncf/udpa/go v0.0.0-20201120205902-5459f2c99403/go.mod h1:WmhPx2Nbnht
 github.com/cncf/xds/go v0.0.0-20210805033703-aa0b78936158/go.mod h1:eXthEFrGJvWHgFFCl3hGmgk+/aYT6PnTQLykKQRLhEs=
 github.com/configwizard/gaspump-api v0.3.3 h1:+MkNQuYWD8qI3CCBbab/gIqnc/Mx7IkDarjB+6EBwUg=
 github.com/configwizard/gaspump-api v0.3.3/go.mod h1:IpTcvif/GOKhBo59epkW1bpx75oL7S9gU2O2YhXqUeQ=
+github.com/configwizard/gaspump-api v0.3.4 h1:6xbIVA2yAkq8a7H5lFl9a6ROlE1riTTnr9z2pZfM2mw=
+github.com/configwizard/gaspump-api v0.3.4/go.mod h1:IpTcvif/GOKhBo59epkW1bpx75oL7S9gU2O2YhXqUeQ=
 github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d/go.mod h1:maD7wRr/U5Z6m/iR4s+kqSMx2CaBsrgA7czyZG/E6dU=
 github.com/cpuguy83/go-md2man/v2 v2.0.1 h1:r/myEWzV9lfsM1tFLgDyu0atFtJ1fXn261LKYj/3DxU=
 github.com/cpuguy83/go-md2man/v2 v2.0.1/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=

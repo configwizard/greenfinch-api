@@ -243,43 +243,16 @@ func GetObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Handl
 			log.Fatal(err)
 		}
 
-		//var content *object2.Object
-		//content, err = object.GetObjectMetaData(ctx, cli, objID, cntID, bearer, nil)
-		//if err != nil {
-		//	log.Println("cannot retrieve metadata", err)
-		//	http.Error(w, err.Error(), 502)
-		//	return
-		//}
-		//f, err := os.Create(filepath.Join("/Users/alex.walker", "tmpFile.jpg"))
-		//defer f.Close()
-		//if err != nil {
-		//	log.Fatal(err)
-		//}
-		//c := progress.NewWriter(f)
-		//wg := sync.WaitGroup{}
-		//wg.Add(1)
-		//go func() {
-		//	defer func() {
-		//		fmt.Println("defer")
-		//		wg.Done()
-		//	}()
-		//	progressChan := progress.NewTicker(ctx, c, int64(content.PayloadSize()), 50*time.Millisecond)
-		//	for p := range progressChan {
-		//		fmt.Printf("\r%v remaining...", p.Remaining().Round(250*time.Millisecond))
-		//	}
-		//	fmt.Println("finished")
-		//}()
+		var content *object2.Object
+		content, err = object.GetObjectMetaData(ctx, cli, objID, cntID, bearer, nil)
+		if err != nil {
+			log.Println("cannot retrieve metadata", err)
+			http.Error(w, err.Error(), 502)
+			return
+		}
 
 		ioWriter := (io.Writer)(w)
-		//var contentType string
-		//for _, v := range content.Attributes() {
-		//	if v.Key() == "Content-Type" {
-		//		contentType = v.Value()
-		//		break
-		//	}
-		//}
-		//contentType = contentType
-		obj, err := object.GetObject(ctx, cli, objID, cntID, bearer, getSession, &ioWriter)
+		obj, err := object.GetObject(ctx, cli, int(content.PayloadSize()), objID, cntID, bearer, getSession, &ioWriter)
 		if err != nil {
 			http.Error(w, err.Error(), 502)
 			return
@@ -393,7 +366,7 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 			for _, v := range attributes {
 				fmt.Printf("attributes %+v\r\n", v)
 			}
-			id, err := object.UploadObject(ctx, cli, r.Header.Get("Content-Type"), cntID, kOwner, attributes, bearer, putSession, &ioReader)
+			id, err := object.UploadObject(ctx, cli, len(buf), cntID, kOwner, attributes, bearer, putSession, &ioReader)
 			if err != nil {
 				fmt.Println("upload error", err)
 				http.Error(w, err.Error(), 400)
@@ -443,7 +416,7 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 				http.Error(w, err.Error(), 502)
 				return
 			}
-			id, err := object.UploadObject(ctx, cli, r.Header.Get("Content-Type"), cntID, kOwner, attributes, bearer, putSession, &ioReader)
+			id, err := object.UploadObject(ctx, cli, int(handler.Size), cntID, kOwner, attributes, bearer, putSession, &ioReader)
 			if err != nil {
 				fmt.Println("upload error", err)
 				http.Error(w, err.Error(), 502)

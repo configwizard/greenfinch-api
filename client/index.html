@@ -182,7 +182,7 @@
     };
 
     //consider using multipart https://stackoverflow.com/questions/50784370/javascript-create-a-file-out-of-json-object-and-use-it-in-a-formdata
-    function jsonDataUpload() {
+    function rawContentUpload() {
         const p = document.getElementById("publicKey")
         let containerID = document.getElementById("containerID")
         console.log(containerID.value)
@@ -206,7 +206,7 @@
         xhttp.setRequestHeader("NEOFS-ATTRIBUTES", attributes.replace(/(\r\n|\n|\r)/gm, ""))
         // xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         const jsonContent = document.getElementById("json-content").value.replace(/(\r\n|\n|\r)/gm, "")
-        const blob = new Blob([JSON.stringify(jsonContent)], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(jsonContent)], { type: 'text/plain' });
         const file = new File([ blob ], filename);
         const formData = new FormData();
         formData.append('file', file, filename);
@@ -390,7 +390,7 @@
             multipartFileUpload()
         } else if (contentTypeUpload == "application/json") {
             console.log("handling json")
-            jsonDataUpload()
+            rawContentUpload()
         }
     };
     document.getElementById("requestResponse").onclick = function() {
