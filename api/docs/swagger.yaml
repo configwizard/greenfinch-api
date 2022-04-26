@@ -47,7 +47,6 @@ paths:
   /object/{containerId}:
     post:
       consumes:
-      - application/json
       - multipart/form-data
       description: Upload object, depending on request content type, defines the upload
         type. Max upload size 32 MB
@@ -72,19 +71,7 @@ paths:
         name: X-s
         required: true
         type: string
-      - description: choose a file. Set the content type to multipart/form-data
-        in: formData
-        name: file
-        required: true
-        type: file
-      - description: specify the json content. Set the content type to application/json
-        in: body
-        name: json
-        required: true
-        schema:
-          $ref: '#/definitions/objects.Object'
       produces:
-      - application/json
       - application/octet-stream
       responses:
         "200":

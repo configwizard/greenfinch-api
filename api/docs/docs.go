@@ -28,11 +28,9 @@ const docTemplate = `{
             "post": {
                 "description": "Upload object, depending on request content type, defines the upload type. Max upload size 32 MB",
                 "consumes": [
-                    "application/json",
                     "multipart/form-data"
                 ],
                 "produces": [
-                    "application/json",
                     "application/octet-stream"
                 ],
                 "tags": [
@@ -67,22 +65,6 @@ const docTemplate = `{
                         "name": "X-s",
                         "in": "header",
                         "required": true
-                    },
-                    {
-                        "type": "file",
-                        "description": "choose a file. Set the content type to multipart/form-data",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "description": "specify the json content. Set the content type to application/json",
-                        "name": "json",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/objects.Object"
-                        }
                     }
                 ],
                 "responses": {

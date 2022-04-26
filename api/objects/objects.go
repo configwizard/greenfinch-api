@@ -270,12 +270,8 @@ func GetObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Handl
 // @Param       publicKey header string true "Public Key"
 // @Param       X-r header string true "The bigInt r, that makes up part of the signature"
 // @Param       X-s header string true "The bigInt s, that makes up part of the signature"
-// @Accept  application/json
-// @Param   file formData file true  "choose a file. Set the content type to multipart/form-data"
-// @Produce  json
 // @Accept  multipart/form-data
 // @Produce octet-stream
-// @Param   json body Object true "specify the json content. Set the content type to application/json"
 // @Success 200 {array} int [45, 21]
 // @Failure 400 {object} HTTPClientError
 // @Failure 404 {object} HTTPServerError
