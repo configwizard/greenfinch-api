@@ -1,7 +1,6 @@
 package objects
 
 import (
-	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -21,12 +20,10 @@ import (
 	"github.com/nspcc-dev/neofs-sdk-go/owner"
 	"github.com/nspcc-dev/neofs-sdk-go/token"
 	"io"
-	"io/ioutil"
 	"log"
 	"math/big"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -341,91 +338,57 @@ func UploadObject(cli *client.Client, serverPrivateKey *keys.PrivateKey) http.Ha
 
 		attributes = append(attributes, []*object2.Attribute{timeStampAttr, contentTypeAttr}...)
 		var ioReader io.Reader
-		if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
-			fmt.Println("application/json")
-			//in this case, we are just storing the content as json bytes in the object
-			//in this case it is expected the FileName was sent as an attribute already
-			if _, ok := parsedAttributes[object2.AttributeFileName]; !ok {
-				http.Error(w, "no filename specified", 400)
-				return
-			}
-			buf, err := ioutil.ReadAll(r.Body)
-			if err != nil {
-				http.Error(w, "invalid body", 400)
-				return
-			}
-			ioReader = bytes.NewReader(buf)
-			serverOwnerID := owner.NewIDFromPublicKey((*ecdsa.PublicKey)(serverPrivateKey.PublicKey()))
-			putSession, err := client2.CreateSessionWithObjectPutContext(ctx, cli, serverOwnerID, cntID, utils.GetHelperTokenExpiry(ctx, cli), &serverPrivateKey.PrivateKey)
-			if err != nil {
-				fmt.Println("session error", err)
-				http.Error(w, err.Error(), 502)
-				return
-			}
+		fmt.Println("multipart management")
+		//wg := sync.WaitGroup{}
+		// Parse our multipart form, 10 << 20 specifies a maximum
+		// upload of 10 MB files.
+		//10 is the number, and we want to shift that 20 places for 10MB
+		//32 << 20 for 32MB
+		//128 << 20 for 128 MB
+		r.ParseMultipartForm(32 << 20)
 
-			for _, v := range attributes {
-				fmt.Printf("attributes %+v\r\n", v)
-			}
-			id, err := object.UploadObject(ctx, cli, len(buf), cntID, kOwner, attributes, bearer, putSession, &ioReader)
-			if err != nil {
-				fmt.Println("upload error", err)
-				http.Error(w, err.Error(), 400)
-				return
-			}
-			w.Write([]byte(id.String()))
-			return
-		} else if strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
-			fmt.Println("multipart management")
-			//wg := sync.WaitGroup{}
-			// Parse our multipart form, 10 << 20 specifies a maximum
-			// upload of 10 MB files.
-			//10 is the number, and we want to shift that 20 places for 10MB
-			//32 << 20 for 32MB
-			//128 << 20 for 128 MB
-			r.ParseMultipartForm(32 << 20)
-
-			file, handler, err := r.FormFile("file")
-			if err != nil {
-				fmt.Println("Error Retrieving the File", err)
-				http.Error(w, err.Error(), 502)
-				return
-			}
-			defer file.Close()
-			fmt.Printf("Uploaded File: %+v\n", handler.Filename)
-			fmt.Printf("File Size: %+v\n", handler.Size)
-			fmt.Printf("MIME Header: %+v\n", handler.Header)
-
-			fileNameAttr := new(object2.Attribute)
-			fileNameAttr.SetKey(object2.AttributeFileName)
-			fileNameAttr.SetValue(handler.Filename)
-			attributes = append(attributes, fileNameAttr)
-			//c := progress.NewReader(file)
-			//wg.Add(1)
-			//go func() {
-			//	defer wg.Done()
-			//	progressChan := progress.NewTicker(ctx, c, handler.Size, 50*time.Millisecond)
-			//	for p := range progressChan {
-			//		fmt.Printf("\r%v remaining...", p.Remaining().Round(250*time.Millisecond))
-			//	}
-			//}()
-			ioReader = (io.Reader)(file)
-			serverOwnerID := owner.NewIDFromPublicKey((*ecdsa.PublicKey)(serverPrivateKey.PublicKey()))
-			putSession, err := client2.CreateSessionWithObjectPutContext(ctx, cli, serverOwnerID, cntID, utils.GetHelperTokenExpiry(ctx, cli), &serverPrivateKey.PrivateKey)
-			if err != nil {
-				fmt.Println("session error", err)
-				http.Error(w, err.Error(), 502)
-				return
-			}
-			id, err := object.UploadObject(ctx, cli, int(handler.Size), cntID, kOwner, attributes, bearer, putSession, &ioReader)
-			if err != nil {
-				fmt.Println("upload error", err)
-				http.Error(w, err.Error(), 502)
-				return
-			}
-			//wg.Wait()
-			w.Write([]byte(id.String()))
+		file, handler, err := r.FormFile("file")
+		if err != nil {
+			fmt.Println("Error Retrieving the File", err)
+			http.Error(w, err.Error(), 502)
 			return
 		}
+		defer file.Close()
+		fmt.Printf("Uploaded File: %+v\n", handler.Filename)
+		fmt.Printf("File Size: %+v\n", handler.Size)
+		fmt.Printf("MIME Header: %+v\n", handler.Header)
+
+		fileNameAttr := new(object2.Attribute)
+		fileNameAttr.SetKey(object2.AttributeFileName)
+		fileNameAttr.SetValue(handler.Filename)
+		attributes = append(attributes, fileNameAttr)
+		//c := progress.NewReader(file)
+		//wg.Add(1)
+		//go func() {
+		//	defer wg.Done()
+		//	progressChan := progress.NewTicker(ctx, c, handler.Size, 50*time.Millisecond)
+		//	for p := range progressChan {
+		//		fmt.Printf("\r%v remaining...", p.Remaining().Round(250*time.Millisecond))
+		//	}
+		//}()
+		ioReader = (io.Reader)(file)
+		serverOwnerID := owner.NewIDFromPublicKey((*ecdsa.PublicKey)(serverPrivateKey.PublicKey()))
+		putSession, err := client2.CreateSessionWithObjectPutContext(ctx, cli, serverOwnerID, cntID, utils.GetHelperTokenExpiry(ctx, cli), &serverPrivateKey.PrivateKey)
+		if err != nil {
+			fmt.Println("session error", err)
+			http.Error(w, err.Error(), 502)
+			return
+		}
+		id, err := object.UploadObject(ctx, cli, int(handler.Size), cntID, kOwner, attributes, bearer, putSession, &ioReader)
+		if err != nil {
+			fmt.Println("upload error", err)
+			http.Error(w, err.Error(), 502)
+			return
+		}
+		//wg.Wait()
+		w.Write([]byte(id.String()))
+		return
+
 		fmt.Println("no valid content type")
 		http.Error(w, err.Error(), 400)
 		return

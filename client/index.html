@@ -95,11 +95,11 @@
                     <div class="input-group mb-3">
                         <div class="dropdown">
                             <button class="btn btn-secondary dropdown-toggle" type="button" id="uploadDropDown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                Dropdown button
+                                Select File type
                             </button>
                             <div class="dropdown-menu" aria-labelledby="uploadDropDownButton" id="uploadDropDownButton">
                                 <a class="dropdown-item upload" href="#">multipart/form-data</a>
-                                <a class="dropdown-item upload" href="#">application/json</a>
+                                <a class="dropdown-item upload" href="#">text/plain</a>
                             </div>
                             <span id="content-type-selector"></span>
                         </div>
@@ -108,17 +108,17 @@
                     <label for="file">choose a file to upload</label>
                     <input type="file" id="file" name="file">
                     </div>
-                    <div id="json-upload" style="display: none;">
-                        <label for="json-attributes">set the name for the content</label><br />
-                        <input type="text" class="form-control" id="jsonFileName" aria-describedby="basic-addon3" value="shakespeare-content.json">
-                        <label for="json-attributes">set the attributes for the upload</label><br />
-                        <textarea rows="4" cols="50" id="json-attributes">
+                    <div id="rawContent-upload" style="display: none;">
+                        <label for="rawContent-attributes">set the name for the content</label><br />
+                        <input type="text" class="form-control" id="rawContentFileName" aria-describedby="basic-addon3" value="shakespeare-content.json">
+                        <label for="rawContent-attributes">set the attributes for the upload</label><br />
+                        <textarea rows="4" cols="50" id="rawContent-attributes">
 {
     "Author Type":"Poetry/fiction"
 }
                         </textarea><br />
-                        <label for="json-content">set the data to upload</label><br />
-                        <textarea rows="4" cols="50" id="json-content">
+                        <label for="raw-content">set the data to upload</label><br />
+                        <textarea rows="4" cols="50" id="raw-content">
 {
     "title":"The complete works of William Shakespeare",
     "birth": "26.04.1564",
@@ -137,11 +137,11 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">4. Use the signature to retrieve</h5>
-                    <p class="card-text">The signature can now be used to make a request</p>
+                    <p class="card-text">The signature can now be used to make a request. <b>Note, you do need to have selected the file type above first</b></p>
                     <div class="input-group mb-3">
                     <div class="dropdown">
                         <button class="btn btn-secondary dropdown-toggle" type="button" id="methodDropDown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            Dropdown button
+                            Select Method
                         </button>
                         <div class="dropdown-menu" aria-labelledby="methodDropDownButton" id="methodDropDownButton">
                             <a class="dropdown-item method" href="#">HEAD</a>
@@ -176,10 +176,10 @@
     const domain = "http://localhost:9000"//"https://greenfinch-api.onrender.com"
     let contentTypeUpload, contentTypeDownload, methodTypeUpload = null
 
-    // Size should be given in 'bytes'
-    function generate_random_data(size) {
-        return new Blob([new ArrayBuffer(size)], {type: 'application/octet-stream'});
-    };
+    // // Size should be given in 'bytes'
+    // function generate_random_data(size) {
+    //     return new Blob([new ArrayBuffer(size)], {type: 'application/octet-stream'});
+    // };
 
     //consider using multipart https://stackoverflow.com/questions/50784370/javascript-create-a-file-out-of-json-object-and-use-it-in-a-formdata
     function rawContentUpload() {
@@ -199,14 +199,14 @@
         xhttp.setRequestHeader("X-r", signature.r)
         xhttp.setRequestHeader("X-s", signature.s)
         xhttp.setRequestHeader("publicKey", p.value)
-        const filename = document.getElementById("jsonFileName").value
+        const filename = document.getElementById("rawContentFileName").value
         //add attributes to the request
-        const attributes = document.getElementById("json-attributes").value
+        const attributes = document.getElementById("rawContent-attributes").value
         console.log(attributes)
         xhttp.setRequestHeader("NEOFS-ATTRIBUTES", attributes.replace(/(\r\n|\n|\r)/gm, ""))
         // xhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-        const jsonContent = document.getElementById("json-content").value.replace(/(\r\n|\n|\r)/gm, "")
-        const blob = new Blob([JSON.stringify(jsonContent)], { type: 'text/plain' });
+        const rawContent = document.getElementById("raw-content").value.replace(/(\r\n|\n|\r)/gm, "")
+        const blob = new Blob([rawContent], { type: 'text/plain' });
         const file = new File([ blob ], filename);
         const formData = new FormData();
         formData.append('file', file, filename);
@@ -214,7 +214,7 @@
         xhttp.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 200) {
                 // Typical action to be performed when the document is ready:
-                console.log("response from json upload ", xhttp.responseText)
+                console.log("response from content upload ", xhttp.responseText)
                 document.getElementById("uploadResponse").innerHTML = xhttp.responseText;
             }
         };
@@ -244,7 +244,7 @@
         xhttp.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 200) {
                 // Typical action to be performed when the document is ready:
-                console.log("response from json upload ", xhttp.responseText)
+                console.log("response from content upload ", xhttp.responseText)
                 document.getElementById("uploadResponse").innerHTML = xhttp.responseText;
             }
         };
@@ -313,7 +313,7 @@
                     var img = document.createElement("img");
                     img.src = window.URL.createObjectURL(blob);
                     src.appendChild(img);
-                } else if (contentTypeUpload == "application/json") {
+                } else if (contentTypeUpload == "text/plain") {
                     var blob = this.response;
                     blob.text().then(text => {
                         let blobText = text
@@ -388,7 +388,7 @@
         if (contentTypeUpload == "multipart/form-data") {
             console.log("handling multipart")
             multipartFileUpload()
-        } else if (contentTypeUpload == "application/json") {
+        } else if (contentTypeUpload == "text/plain") {
             console.log("handling json")
             rawContentUpload()
         }
@@ -404,9 +404,9 @@
         contentTypeUpload = e.target.innerText
         if (contentTypeUpload == "multipart/form-data") {
             document.getElementById("multipart-upload").style.display = "inline";
-            document.getElementById("json-upload").style.display = "none";
-        } else if (contentTypeUpload == "application/json") {
-            document.getElementById("json-upload").style.display = "inline";
+            document.getElementById("rawContent-upload").style.display = "none";
+        } else if (contentTypeUpload == "text/plain") {
+            document.getElementById("rawContent-upload").style.display = "inline";
             document.getElementById("multipart-upload").style.display = "none";
         }
         document.getElementById("content-type-selector").textContent = e.target.innerText
