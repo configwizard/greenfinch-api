@@ -118,7 +118,7 @@
                                 <h3>Request</h3>
                                 <h4 class="ut-uc">Headers</h4>
                                 <ul>
-                                    <li><pre class="ut-inline">containerId</pre><span class="ut-required">(required)</span>: The ID of the container to upload the object to</li>
+                                    <li><pre class="ut-inline">containerId</pre><span class="ut-required">(required)</span>: The ID of the container to list the objects in</li>
                                     <li><pre class="ut-inline">publicKey</pre><span class="ut-required">(required)</span>: The public key of the container owner</li>
                                     <li><pre class="ut-inline">X-r</pre><span class="ut-required">(required)</span>: The (bigInt) r - the integer retrieved from the signature</li>
                                     <li><pre class="ut-inline">X-s</pre><span class="ut-required">(required)</span>: The (bigInt) s - the integer retrieved from the signature</li>
@@ -155,7 +155,8 @@
                                 <h3>Request</h3>
                                 <h4 class="ut-uc">Headers</h4>
                                 <ul>
-                                    <li><pre class="ut-inline">containerId</pre><span class="ut-required">(required)</span>: The ID of the container to upload the object to</li>
+                                    <li><pre class="ut-inline">containerId</pre><span class="ut-required">(required)</span>: The ID of the container that contains the object</li>
+                                    <li><pre class="ut-inline">objectId</pre><span class="ut-required">(required)</span>: The ID of the object to retrieve</li>
                                     <li><pre class="ut-inline">publicKey</pre><span class="ut-required">(required)</span>: The public key of the container owner</li>
                                     <li><pre class="ut-inline">X-r</pre><span class="ut-required">(required)</span>: The (bigInt) r - the integer retrieved from the signature</li>
                                     <li><pre class="ut-inline">X-s</pre><span class="ut-required">(required)</span>: The (bigInt) s - the integer retrieved from the signature</li>
@@ -196,7 +197,8 @@
                                 <h3>Request</h3>
                                 <h4 class="ut-uc">Headers</h4>
                                 <ul>
-                                    <li><pre class="ut-inline">containerId</pre><span class="ut-required">(required)</span>: The ID of the container to upload the object to</li>
+                                    <li><pre class="ut-inline">containerId</pre><span class="ut-required">(required)</span>: The ID of the container that contains the object</li>
+                                    <li><pre class="ut-inline">objectId</pre><span class="ut-required">(required)</span>: The ID of the object to retrieve the metadata of</li>
                                     <li><pre class="ut-inline">publicKey</pre><span class="ut-required">(required)</span>: The public key of the container owner</li>
                                     <li><pre class="ut-inline">X-r</pre><span class="ut-required">(required)</span>: The (bigInt) r - the integer retrieved from the signature</li>
                                     <li><pre class="ut-inline">X-s</pre><span class="ut-required">(required)</span>: The (bigInt) s - the integer retrieved from the signature</li>
@@ -233,7 +235,8 @@
                                 <h3>Request</h3>
                                 <h4 class="ut-uc">Headers</h4>
                                 <ul>
-                                    <li><pre class="ut-inline">containerId</pre><span class="ut-required">(required)</span>: The ID of the container to upload the object to</li>
+                                    <li><pre class="ut-inline">containerId</pre><span class="ut-required">(required)</span>: The ID of the container that contains the object</li>
+                                    <li><pre class="ut-inline">objectId</pre><span class="ut-required">(required)</span>: The ID of the object to delete</li>
                                     <li><pre class="ut-inline">publicKey</pre><span class="ut-required">(required)</span>: The public key of the container owner</li>
                                     <li><pre class="ut-inline">X-r</pre><span class="ut-required">(required)</span>: The (bigInt) r - the integer retrieved from the signature</li>
                                     <li><pre class="ut-inline">X-s</pre><span class="ut-required">(required)</span>: The (bigInt) s - the integer retrieved from the signature</li>
@@ -405,7 +408,7 @@
                                     <li><a class="dropdown-item method" href="#">LIST</a></li>
                                     <li><a class="dropdown-item method" href="#">DELETE</a></li>
                                 </ul>
-                                <span id="content-type-selector"></span>
+                                <span id="method-type-selector"></span>
                             </div>
                             <!-- 
                             <div class="dropdown">
