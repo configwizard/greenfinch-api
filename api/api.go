@@ -368,6 +368,7 @@ func main() {
 	r.Route("/api/v1/object", func(r chi.Router) {
 		r.Use(WalletCtx)
 		r.Head("/{containerId}/{objectId}", objects.GetObjectHead(apiClient, serverPrivateKey.PublicKey()))
+		r.Get("/data/{containerId}/{objectId}", objects.GetObjectHead(apiClient, serverPrivateKey.PublicKey()))
 		r.Get("/{containerId}", objects.ListObjectsInContainer(apiClient, serverPrivateKey.PublicKey()))
 		r.Delete("/{containerId}/{objectId}", objects.DeleteObject(apiClient, &serverPrivateKey))
 		r.Get("/{containerId}/{objectId}", objects.GetObject(apiClient, &serverPrivateKey))
