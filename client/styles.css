@@ -19,8 +19,73 @@ body {
     color: #2b393f;
 }
 
-h1, h2, h3, h4, h5, h6 {
+strong {
     font-family: 'AvertaStdPESemiBold', sans-serif;
+}
+
+a.ut-standard {
+    transition: 0.3s;
+    color: #00af92;
+}
+
+a.ut-standard:hover {
+    color: #00E599;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #2b393f;
+    font-family: 'AvertaStdPESemiBold', sans-serif;
+}
+
+h2.card-title {
+    margin-top: 10px;
+    font-family: 'AvertaStdPEBold', sans-serif;
+}
+
+h3 {
+    margin-top: 25px;
+}
+
+h4.ut-uc {
+    font-family: 'AvertaStdPEBold', sans-serif;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+pre.ut-bg {
+    border-radius: 2px;
+    background-color: rgba(0,0,0,0.05);
+    padding: 4px 7px;
+}
+
+pre.ut-inline {
+    display: inline;
+    border-radius: 2px;
+    background-color: rgba(0,0,0,0.05);
+    padding: 4px 7px;
+}
+
+span.ut-required {
+    margin: 0 5px;
+    font-size: 0.8rem;
+    font-family: 'AvertaStdPEBold', sans-serif;
+    color: #e06a6e;
+    text-transform: uppercase;
+}
+
+span.ut-nos {
+    font-family: 'AvertaStdPEBold', sans-serif;
+}
+
+ul.ut-outline {
+    font-family: 'AvertaStdPESemiBold', sans-serif;
+}
+
+li {
+    margin-bottom: 10px;
 }
 
 /* Layout */
@@ -38,6 +103,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Accordion */
 .accordion-button:not(.collapsed) {
+    color: #00af92;
     background-color: rgba(0, 175, 146, 0.1);
 }
 
@@ -63,4 +129,10 @@ h1, h2, h3, h4, h5, h6 {
     letter-spacing: 0.05em;
     color: #fff;
     background-color: #2b393f!important;
+}
+
+/* Input Group */
+.input-group-text {
+    font-family: 'AvertaStdPESemiBold', sans-serif !important;
+    font-weight: unset;
 }
