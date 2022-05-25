@@ -1,3 +1,46 @@
 body {
-    background-color: green;
+    background-color: rgba(0, 0, 0, 0.02);
+    color: #2b393f;
+}
+
+/* Layout */
+.row {
+    margin-bottom: 10px;
+}
+
+.row:first-child {
+    margin-top: 10px;
+}
+
+.row:last-child {
+    margin-bottom: 20px;
+}
+
+/* Accordion */
+.accordion-button:not(.collapsed) {
+    background-color: rgba(0, 175, 146, 0.1);
+}
+
+/* Button */
+.btn.btn-primary {
+    border: none;
+    transition: 0.3s;
+    background-color: #00E599;
+	color: white;
+}
+
+.btn.btn-primary:hover {
+    border: none;
+    background-color: #00af92;
+}
+
+.btn.btn-secondary {
+    background-color: #2b393f;
+}
+
+/* Badge */
+.bg-primary {
+    letter-spacing: 0.05em;
+    color: #fff;
+    background-color: #2b393f!important;
 }

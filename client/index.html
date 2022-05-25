@@ -2,404 +2,656 @@
 <head>
     <script src="https://unpkg.com/@cityofzion/neon-js@next"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha512/0.8.0/sha512.min.js" integrity="sha512-KUrAWA1oxsWKHBaA2mlZyRuR8zzzHHYgpDfkfPrT3FhlZ4YdXbXyE89VHI6WmWradSHtuZjLyLAMP2F7IWK4JQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="/styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
-<style>
-    pre {
-        white-space: pre-wrap;       /* Since CSS 2.1 */
-        white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
-        white-space: -pre-wrap;      /* Opera 4-6 */
-        white-space: -o-pre-wrap;    /* Opera 7 */
-        word-wrap: break-word;       /* Internet Explorer 5.5+ */
-    }
-</style>
+   
+    <!-- Bootstrap-->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- 
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    -->
+    <style>
+        pre {
+            white-space: pre-wrap;       /* Since CSS 2.1 */
+            white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+            white-space: -pre-wrap;      /* Opera 4-6 */
+            white-space: -o-pre-wrap;    /* Opera 7 */
+            word-wrap: break-word;       /* Internet Explorer 5.5+ */
+        }
+    </style>
+</head>
 <body>
-<div class="container">
-    <!-- Content here -->
-    <div class="row">
-        <div class="col-sm-12">
-            <div class="card">
-                <div class="card-body">
-                    <h3 class="card-title">Greenfinch API.</h3>
-                    <h5 class="card-text">This is an HTTP API into the NeoFS file system</h5>
-                    <p>Currently this has initial support for object management. Please see:</p>
-                    <ul>
-                        <li><a href="https://developers.neo.org/docs/n3/neofs/introduction/Overview">The Neo developer documentation for an overview</a></li>
-                        <li><a href="https://gist.github.com/amlwwalker/407a04c9b21915eee067a5531394f542#file-index-html">The Gist here to see how to interact from javascript</a></li>
-                        <li><a href="https://gist.github.com/amlwwalker/407a04c9b21915eee067a5531394f542#file-createcontainer-go">Code to create a container</a></li>
-                        <li><a href="https://gist.github.com/amlwwalker/407a04c9b21915eee067a5531394f542#file-decryptaccount-js">Helper decrypting wallets for public and private key</a></li>
-                    </ul>
-                </ul></p>
-
-                    <h3>Roadmap</h3>
-                    <ul>
-                        <li>Container management (creation/deletion/list/sharing)</li>
-                        <li>Larger objects</li>
-                        <li>Search attributes</li>
-                        <li>Shared library (.so files)</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-        <div id="accordion">
-            <div class="card">
-                <div class="card-header" id="uploadObject">
-                    <h5 class="mb-0">
-                        <button class="btn btn-link" data-toggle="collapse" data-target="#collapseUploadObject" aria-expanded="true" aria-controls="collapseUploadObject">
-                            <span class="badge badge-primary">POST</span> Upload an object to a container
-                        </button>
-                    </h5>
-                </div>
-                <div id="collapseUploadObject" class="collapse" aria-labelledby="uploadObject" data-parent="#accordion">
+    <div class="container">
+        <!-- Content here -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
                     <div class="card-body">
-                        <pre>/object/{containerId}</pre>
-                        <h3>Request</h3>
-                        <h4>Headers</h4>
+                        <h3 class="card-title">Greenfinch API</h3>
+                        <h5 class="card-text">This is an HTTP API into the NeoFS file system.</h5>
+                        <p>Currently this has initial support for object management. Please see:</p>
                         <ul>
-                            <li><pre>containerId</pre> (required): The ID of the container to upload the object to</li>
-                            <li><pre>publicKey</pre> (required): The public key of the container owner</li>
-                            <li><pre>X-r</pre> (required): The (bigInt) r - the integer retrieved from the signature</li>
-                            <li><pre>X-s</pre> (required): The (bigInt) s - the integer retrieved from the signature</li>
-                            <li><pre>Content-Type: multipart/form-data</pre> Currently only multipart/form-data is supported Currently max size is 32 MB</li>
+                            <li><a href="https://developers.neo.org/docs/n3/neofs/introduction/Overview">The Neo developer documentation for an overview</a></li>
+                            <li><a href="https://gist.github.com/amlwwalker/407a04c9b21915eee067a5531394f542#file-index-html">The Gist here to see how to interact from javascript</a></li>
+                            <li><a href="https://gist.github.com/amlwwalker/407a04c9b21915eee067a5531394f542#file-createcontainer-go">Code to create a container</a></li>
+                            <li><a href="https://gist.github.com/amlwwalker/407a04c9b21915eee067a5531394f542#file-decryptaccount-js">Helper decrypting wallets for public and private key</a></li>
                         </ul>
-                        <h3>Response</h3>
-                        <h4>Success</h4>
+                        <h3>Roadmap</h3>
                         <ul>
-                            <li>Response code: 200</li>
-                            <li><pre>Content: {objectId}</pre><li>
-                        </ul>
-                        <h4>Bad Request</h4>
-                        <ul>
-                            <li>Response code: 400</li>
-                            <li><pre>Content: error message defining issue with request</pre><li>
-                        </ul>
-                        <h4>Server error</h4>
-                        <ul>
-                            <li>Response code: 502</li>
-                            <li><pre>Content: Issue with the session (recreate the signature)</pre><li>
-                            <li><pre>Content: Issue with the payload (the payload was not of the correct content-type)</pre><li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-header" id="listObjects">
-                    <h5 class="mb-0">
-                        <button class="btn btn-link" data-toggle="collapse" data-target="#collapselistObjects" aria-expanded="true" aria-controls="collapselistObjects">
-                            <span class="badge badge-primary">GET</span> List all the objects in a container
-                        </button>
-                    </h5>
-                </div>
-
-                <div id="collapselistObjects" class="collapse" aria-labelledby="listObjects" data-parent="#accordion">
-                    <div class="card-body">
-                        <pre>/object/{containerId}</pre>
-                        <h3>Request</h3>
-                        <h4>Headers</h4>
-                        <ul>
-                            <li><pre>containerId</pre> (required): The ID of the container to upload the object to</li>
-                            <li><pre>publicKey</pre> (required): The public key of the container owner</li>
-                            <li><pre>X-r</pre> (required): The (bigInt) r - the integer retrieved from the signature</li>
-                            <li><pre>X-s</pre> (required): The (bigInt) s - the integer retrieved from the signature</li>
-                            <li><pre>Content-Type: multipart/form-data</pre> Currently only multipart/form-data is supported</li>
-                        </ul>
-                        <p>The payload should be multipart/form-data</p>
-                        <h3>Response</h3>
-                        <h4>Success</h4>
-                        <ul>
-                            <li>Response code: 200</li>
-                            <li><pre>Content: [{objectId}, {objectId}, {objectId}]</pre><li>
-                        </ul>
-                        <h4>Bad Request</h4>
-                        <ul>
-                            <li>Response code: 400</li>
-                            <li><pre>Content: error message defining issue with request</pre><li>
-                        </ul>
-                        <h4>Server error</h4>
-                        <ul>
-                            <li>Response code: 502</li>
-                            <li><pre>Content: Issue with the session (recreate the signature)</pre><li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-header" id="getObject">
-                    <h5 class="mb-0">
-                        <button class="btn btn-link" data-toggle="collapse" data-target="#collapseGetObject" aria-expanded="true" aria-controls="collapseGetObject">
-                            <span class="badge badge-primary">GET</span> Get an Object (payload)
-                        </button>
-                    </h5>
-                </div>
-
-                <div id="collapseGetObject" class="collapse" aria-labelledby="getObject" data-parent="#accordion">
-                    <div class="card-body">
-                        <pre>/object/{containerId}/{objectId}</pre>
-                        <h3>Request</h3>
-                        <h4>Headers</h4>
-                        <ul>
-                            <li><pre>containerId</pre> (required): The ID of the container to upload the object to</li>
-                            <li><pre>publicKey</pre> (required): The public key of the container owner</li>
-                            <li><pre>X-r</pre> (required): The (bigInt) r - the integer retrieved from the signature</li>
-                            <li><pre>X-s</pre> (required): The (bigInt) s - the integer retrieved from the signature</li>
-                            <li><pre>Content-Type: multipart/form-data</pre> Currently only multipart/form-data is supported</li>
-                        </ul>
-                        <p>The payload should be multipart/form-data</p>
-                        <h3>Response</h3>
-                        <h4>Success</h4>
-                        <ul>
-                            <li>Header: <pre>NEOFS-META: {metadata}</pre></li>
-                            <li>Response code: 200</li>
-                            <li><pre>Content: []byte</pre><li>
-                        </ul>
-                        <h4>Bad Request</h4>
-                        <ul>
-                            <li>Response code: 400</li>
-                            <li><pre>Content: error message defining issue with request</pre><li>
-                        </ul>
-                        <h4>Server error</h4>
-                        <ul>
-                            <li>Response code: 502</li>
-                            <li><pre>Content: Issue with the session (recreate the signature)</pre><li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-header" id="getObjectHead">
-                    <h5 class="mb-0">
-                        <button class="btn btn-link" data-toggle="collapse" data-target="#collapseGetObjectHead" aria-expanded="true" aria-controls="collapseGetObjectHead">
-                            <span class="badge badge-primary">HEAD</span> <span class="badge badge-primary">GET</span> Get an objects metadata
-                        </button>
-                    </h5>
-                </div>
-
-                <div id="collapseGetObjectHead" class="collapse" aria-labelledby="getObjectHead" data-parent="#accordion">
-                    <div class="card-body">
-                        <pre>HEAD /object/{containerId}/{objectId}</pre>
-                        <pre>GET /object/data/{containerId}/{objectId}</pre>
-
-                        <b>Not all servers respect the HEAD method</b>
-                        <h3>Request</h3>
-                        <h4>Headers</h4>
-                        <ul>
-                            <li><pre>containerId</pre> (required): The ID of the container to upload the object to</li>
-                            <li><pre>publicKey</pre> (required): The public key of the container owner</li>
-                            <li><pre>X-r</pre> (required): The (bigInt) r - the integer retrieved from the signature</li>
-                            <li><pre>X-s</pre> (required): The (bigInt) s - the integer retrieved from the signature</li>
-                            <li><pre>Content-Type: multipart/form-data</pre> Currently only multipart/form-data is supported</li>
-                        </ul>
-                        <p>The payload should be multipart/form-data</p>
-                        <h3>Response</h3>
-                        <h4>Success</h4>
-                        <ul>
-                            <li>Header: <pre>NEOFS-META: {metadata}</pre></li>
-                            <li>Response code: 200</li>
-                        </ul>
-                        <h4>Bad Request</h4>
-                        <ul>
-                            <li>Response code: 400</li>
-                            <li><pre>Content: error message defining issue with request</pre><li>
-                        </ul>
-                        <h4>Server error</h4>
-                        <ul>
-                            <li>Response code: 502</li>
-                            <li><pre>Content: Issue with the session (recreate the signature)</pre><li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-header" id="deleteObject">
-                    <h5 class="mb-0">
-                        <button class="btn btn-link" data-toggle="collapse" data-target="#collapseDeleteObject" aria-expanded="true" aria-controls="collapseDeleteObject">
-                            <span class="badge badge-primary">DELETE</span> - Delete an object
-                        </button>
-                    </h5>
-                </div>
-
-                <div id="collapseDeleteObject" class="collapse" aria-labelledby="deleteObject" data-parent="#accordion">
-                    <div class="card-body">
-                        <pre>/object/{containerId}/{objectId}</pre>
-                        <h3>Request</h3>
-                        <h4>Headers</h4>
-                        <ul>
-                            <li><pre>containerId</pre> (required): The ID of the container to upload the object to</li>
-                            <li><pre>publicKey</pre> (required): The public key of the container owner</li>
-                            <li><pre>X-r</pre> (required): The (bigInt) r - the integer retrieved from the signature</li>
-                            <li><pre>X-s</pre> (required): The (bigInt) s - the integer retrieved from the signature</li>
-                            <li><pre>Content-Type: multipart/form-data</pre> Currently only multipart/form-data is supported</li>
-                        </ul>
-                        <p>The payload should be multipart/form-data</p>
-                        <h3>Response</h3>
-                        <h4>Success</h4>
-                        <ul>
-                            <li>Response code: 204</li>
-                        </ul>
-                        <h4>Bad Request</h4>
-                        <ul>
-                            <li>Response code: 400</li>
-                            <li><pre>Content: error message defining issue with request</pre><li>
-                        </ul>
-                        <h4>Server error</h4>
-                        <ul>
-                            <li>Response code: 502</li>
-                            <li><pre>Content: Issue with the session (recreate the signature)</pre><li>
+                            <li>Container management (creation/deletion/list/sharing)</li>
+                            <li>Larger objects</li>
+                            <li>Search attributes</li>
+                            <li>Shared library (.so files)</li>
                         </ul>
                     </div>
                 </div>
             </div>
         </div>
-</div>
-<div class="container">
-    <div class="row">
-        <div class="col-sm-12">
-            <div class="card">
-                <div class="card-body">
-                    <h3 class="card-title">Greenfinch API Sandbox</h3>
-                    <h5 class="card-text">You can try out the API here</h5>
-                    <p>In short, this API allows a container owner to interact with their container and objects over HTTP without sharing their private key. <br />You need to have
-                    <ul>
-                        <li>A containerID and the public key of the container owner. Send these to the API to receive a bearer token.</li>
-                        <li>Use this token and your private key to sign the bearer token.</li>
-                        <li>Now you can upload an object</li>
-                        <li>Or you can retrieve details of an object</li>
-                        <li>Or you can list all objects</li>
-                        <li>Or you can delete an object</li>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">1. Request new bearer token</h5>
-                    <p class="card-text">before any request you will need a bearer token. You can specify how long a token should last.</p>
-                    <div class="input-group mb-3">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">public key</span>
-                        </div>
-                        <input type="text" class="form-control" id="publicKey" aria-describedby="basic-addon3" value="">
-                    </div>
-                    <div class="input-group mb-3">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">container ID</span>
-                        </div>
-                        <input type="text" class="form-control" id="containerID" aria-describedby="basic-addon3" value="">
-                    </div>
-                    <button class="btn btn-primary" id="getBearerToken" >Request Token</button>
-                    <span>
-                        <pre id="token"></pre>
-                    </span>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">2. Sign the bearer token</h5>
-                    <p class="card-text">Now, with your private key, you need to sign the bearer token. This will respond with two integers, r and s</p>
-                    <div class="input-group mb-3">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">private key</span>
-                        </div>
-                        <input type="password" class="form-control" id="privateKey" aria-describedby="basic-addon3" value="">
-                    </div>
-                    <button class="btn btn-primary" id="signToken">Sign Token</button>
-                    <span>
-                        <pre id="signature"></pre>
-<!--                        <button onClick="getBearerToken()">Click me</button>-->
-                    </span>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-12">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">3. Use the signature to upload</h5>
-                    <p class="card-text">Use the signature to upload some data to the contain</p>
-                    <div class="input-group mb-3">
-                        <div class="dropdown">
-                            <button class="btn btn-secondary dropdown-toggle" type="button" id="uploadDropDown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                Select File type
+        <div class="row">
+            <div class="col-12">
+
+                <div class="accordion" id="accordionAPI">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingUploadObject">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseUploadObject" aria-expanded="false" aria-controls="collapseUploadObject">
+                                <span class="badge bg-primary">POST</span>&nbsp;Upload an object to a container
                             </button>
-                            <div class="dropdown-menu" aria-labelledby="uploadDropDownButton" id="uploadDropDownButton">
-                                <a class="dropdown-item upload" href="#">multipart/form-data</a>
-                                <a class="dropdown-item upload" href="#">text/plain</a>
+                        </h2>
+                        <div id="collapseUploadObject" class="accordion-collapse collapse" aria-labelledby="headingUploadObject" data-bs-parent="#accordionAPI">
+                            <div class="accordion-body">
+                                <pre>/object/{containerId}</pre>
+                                <h3>Request</h3>
+                                <h4>Headers</h4>
+                                <ul>
+                                    <li><pre>containerId</pre> (required): The ID of the container to upload the object to</li>
+                                    <li><pre>publicKey</pre> (required): The public key of the container owner</li>
+                                    <li><pre>X-r</pre> (required): The (bigInt) r - the integer retrieved from the signature</li>
+                                    <li><pre>X-s</pre> (required): The (bigInt) s - the integer retrieved from the signature</li>
+                                    <li><pre>Content-Type: multipart/form-data</pre> Currently only multipart/form-data is supported Currently max size is 32 MB</li>
+                                </ul>
+                                <h3>Response</h3>
+                                <h4>Success</h4>
+                                <ul>
+                                    <li>Response code: 200</li>
+                                    <li><pre>Content: {objectId}</pre></li>
+                                </ul>
+                                <h4>Bad Request</h4>
+                                <ul>
+                                    <li>Response code: 400</li>
+                                    <li><pre>Content: error message defining issue with request</pre></li>
+                                </ul>
+                                <h4>Server error</h4>
+                                <ul>
+                                    <li>Response code: 502</li>
+                                    <li><pre>Content: Issue with the session (recreate the signature)</pre></li>
+                                    <li><pre>Content: Issue with the payload (the payload was not of the correct content-type)</pre></li>
+                                </ul>
                             </div>
-                            <span id="content-type-selector"></span>
                         </div>
                     </div>
-                    <div id="multipart-upload" style="display: none;">
-                    <label for="file">choose a file to upload</label>
-                    <input type="file" id="file" name="file">
-                    </div>
-                    <div id="rawContent-upload" style="display: none;">
-                        <label for="rawContent-attributes">set the name for the content</label><br />
-                        <input type="text" class="form-control" id="rawContentFileName" aria-describedby="basic-addon3" value="shakespeare-content.json">
-                        <label for="rawContent-attributes">set the attributes for the upload</label><br />
-                        <textarea rows="4" cols="50" id="rawContent-attributes">
-{
-    "Author Type":"Poetry/fiction"
-}
-                        </textarea><br />
-                        <label for="raw-content">set the data to upload</label><br />
-                        <textarea rows="4" cols="50" id="raw-content">
-{
-    "title":"The complete works of William Shakespeare",
-    "birth": "26.04.1564",
-    "died": "23.04.1616"
-}
-                        </textarea>
-                    </div>
-                    <button class="btn btn-primary" id="uploadButton">Upload</button>
-                    <span>
-                        <pre id="uploadResponse"></pre>
-                    </span>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-12">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">4. Use the signature to retrieve</h5>
-                    <p class="card-text">The signature can now be used to make a request. <b>Note, you do need to have selected the file type above first</b></p>
-                    <div class="input-group mb-3">
-                    <div class="dropdown">
-                        <button class="btn btn-secondary dropdown-toggle" type="button" id="methodDropDown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            Select Method
-                        </button>
-                        <div class="dropdown-menu" aria-labelledby="methodDropDownButton" id="methodDropDownButton">
-<!--                            <a class="dropdown-item method" href="#">HEAD</a>-->
-                            <a class="dropdown-item method" href="#">GET</a>
-                            <a class="dropdown-item method" href="#">LIST</a>
-                            <a class="dropdown-item method" href="#">DELETE</a>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingListObjects">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseListObjects" aria-expanded="false" aria-controls="collapseListObjects">
+                                <span class="badge bg-primary">GET</span>&nbsp;List all the objects in a container
+                            </button>
+                        </h2>
+                        <div id="collapseListObjects" class="accordion-collapse collapse" aria-labelledby="headingListObjects" data-bs-parent="#accordionAPI">
+                            <div class="accordion-body">
+                                <pre>/object/{containerId}</pre>
+                                <h3>Request</h3>
+                                <h4>Headers</h4>
+                                <ul>
+                                    <li><pre>containerId</pre> (required): The ID of the container to upload the object to</li>
+                                    <li><pre>publicKey</pre> (required): The public key of the container owner</li>
+                                    <li><pre>X-r</pre> (required): The (bigInt) r - the integer retrieved from the signature</li>
+                                    <li><pre>X-s</pre> (required): The (bigInt) s - the integer retrieved from the signature</li>
+                                    <li><pre>Content-Type: multipart/form-data</pre> Currently only multipart/form-data is supported</li>
+                                </ul>
+                                <p>The payload should be multipart/form-data</p>
+                                <h3>Response</h3>
+                                <h4>Success</h4>
+                                <ul>
+                                    <li>Response code: 200</li>
+                                    <li><pre>Content: [{objectId}, {objectId}, {objectId}]</pre></li>
+                                </ul>
+                                <h4>Bad Request</h4>
+                                <ul>
+                                    <li>Response code: 400</li>
+                                    <li><pre>Content: error message defining issue with request</pre></li>
+                                </ul>
+                                <h4>Server error</h4>
+                                <ul>
+                                    <li>Response code: 502</li>
+                                    <li><pre>Content: Issue with the session (recreate the signature)</pre></li>
+                                </ul>
+                            </div>
                         </div>
-                        <span id="method-type-selector"></span>
                     </div>
-                    </div>
-                    <div class="input-group mb-3">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">objectID</span>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingGetObject">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGetObject" aria-expanded="false" aria-controls="collapseGetObject">
+                                <span class="badge bg-primary">GET</span>&nbsp;Get an Object (payload)
+                            </button>
+                        </h2>
+                        <div id="collapseGetObject" class="accordion-collapse collapse" aria-labelledby="headingGetObject" data-bs-parent="#accordionAPI">
+                            <div class="accordion-body">
+                                <pre>/object/{containerId}/{objectId}</pre>
+                                <h3>Request</h3>
+                                <h4>Headers</h4>
+                                <ul>
+                                    <li><pre>containerId</pre> (required): The ID of the container to upload the object to</li>
+                                    <li><pre>publicKey</pre> (required): The public key of the container owner</li>
+                                    <li><pre>X-r</pre> (required): The (bigInt) r - the integer retrieved from the signature</li>
+                                    <li><pre>X-s</pre> (required): The (bigInt) s - the integer retrieved from the signature</li>
+                                    <li><pre>Content-Type: multipart/form-data</pre> Currently only multipart/form-data is supported</li>
+                                </ul>
+                                <p>The payload should be multipart/form-data</p>
+                                <h3>Response</h3>
+                                <h4>Success</h4>
+                                <ul>
+                                    <li>Header: <pre>NEOFS-META: {metadata}</pre></li>
+                                    <li>Response code: 200</li>
+                                    <li><pre>Content: []byte</pre></li>
+                                </ul>
+                                <h4>Bad Request</h4>
+                                <ul>
+                                    <li>Response code: 400</li>
+                                    <li><pre>Content: error message defining issue with request</pre></li>
+                                </ul>
+                                <h4>Server error</h4>
+                                <ul>
+                                    <li>Response code: 502</li>
+                                    <li><pre>Content: Issue with the session (recreate the signature)</pre></li>
+                                </ul>
+                            </div>
                         </div>
-                        <input type="text" class="form-control" id="objectID" aria-describedby="basic-addon3" value="">
                     </div>
-                    <button class="btn btn-primary" id="requestResponse">Make request</button>
-                    <button class="btn btn-primary" id="decodeContent">Decode</button>
-                    <span>
-                        <pre id="metadata"></pre>
-                        <pre id="decodedContent"></pre>
-                        <div id="displayImage"></div>
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingGetObjectHead">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGetObjectHead" aria-expanded="false" aria-controls="collapseGetObjectHead">
+                                <span class="badge bg-primary">HEAD</span>&nbsp;<span class="badge bg-primary">GET</span>&nbsp;Get an object's metadata
+                            </button>
+                        </h2>
+                        <div id="collapseGetObjectHead" class="accordion-collapse collapse" aria-labelledby="headingGetObjectHead" data-bs-parent="#accordionAPI">
+                            <div class="accordion-body">
+                                <pre>HEAD /object/{containerId}/{objectId}</pre>
+                                <pre>GET /object/data/{containerId}/{objectId}</pre>
 
+                                <b>Not all servers respect the HEAD method</b>
+                                <h3>Request</h3>
+                                <h4>Headers</h4>
+                                <ul>
+                                    <li><pre>containerId</pre> (required): The ID of the container to upload the object to</li>
+                                    <li><pre>publicKey</pre> (required): The public key of the container owner</li>
+                                    <li><pre>X-r</pre> (required): The (bigInt) r - the integer retrieved from the signature</li>
+                                    <li><pre>X-s</pre> (required): The (bigInt) s - the integer retrieved from the signature</li>
+                                    <li><pre>Content-Type: multipart/form-data</pre> Currently only multipart/form-data is supported</li>
+                                </ul>
+                                <p>The payload should be multipart/form-data</p>
+                                <h3>Response</h3>
+                                <h4>Success</h4>
+                                <ul>
+                                    <li>Header: <pre>NEOFS-META: {metadata}</pre></li>
+                                    <li>Response code: 200</li>
+                                </ul>
+                                <h4>Bad Request</h4>
+                                <ul>
+                                    <li>Response code: 400</li>
+                                    <li><pre>Content: error message defining issue with request</pre></li>
+                                </ul>
+                                <h4>Server error</h4>
+                                <ul>
+                                    <li>Response code: 502</li>
+                                    <li><pre>Content: Issue with the session (recreate the signature)</pre></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingDeleteObject">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDeleteObject" aria-expanded="false" aria-controls="collapseDeleteObject">
+                                <span class="badge bg-primary">DELETE</span>&nbsp;Delete an object
+                            </button>
+                        </h2>
+                        <div id="collapseDeleteObject" class="accordion-collapse collapse" aria-labelledby="headingDeleteObject" data-bs-parent="#accordionAPI">
+                            <div class="accordion-body">
+                                <pre>/object/{containerId}/{objectId}</pre>
+                                <h3>Request</h3>
+                                <h4>Headers</h4>
+                                <ul>
+                                    <li><pre>containerId</pre> (required): The ID of the container to upload the object to</li>
+                                    <li><pre>publicKey</pre> (required): The public key of the container owner</li>
+                                    <li><pre>X-r</pre> (required): The (bigInt) r - the integer retrieved from the signature</li>
+                                    <li><pre>X-s</pre> (required): The (bigInt) s - the integer retrieved from the signature</li>
+                                    <li><pre>Content-Type: multipart/form-data</pre> Currently only multipart/form-data is supported</li>
+                                </ul>
+                                <p>The payload should be multipart/form-data</p>
+                                <h3>Response</h3>
+                                <h4>Success</h4>
+                                <ul>
+                                    <li>Response code: 204</li>
+                                </ul>
+                                <h4>Bad Request</h4>
+                                <ul>
+                                    <li>Response code: 400</li>
+                                    <li><pre>Content: error message defining issue with request</pre></li>
+                                </ul>
+                                <h4>Server error</h4>
+                                <ul>
+                                    <li>Response code: 502</li>
+                                    <li><pre>Content: Issue with the session (recreate the signature)</pre></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!--
+                <div class="card">
+                    <div class="card-header" id="uploadObject">
+                        <h5 class="mb-0">
+                            <button class="btn btn-link" data-toggle="collapse" data-target="#collapseUploadObject" aria-expanded="true" aria-controls="collapseUploadObject">
+                                <span class="badge badge-primary">POST</span> Upload an object to a container
+                            </button>
+                        </h5>
+                    </div>
+                    <div id="collapseUploadObject" class="collapse" aria-labelledby="uploadObject" data-parent="#accordion">
+                        <div class="card-body">
+                            <pre>/object/{containerId}</pre>
+                            <h3>Request</h3>
+                            <h4>Headers</h4>
+                            <ul>
+                                <li><pre>containerId</pre> (required): The ID of the container to upload the object to</li>
+                                <li><pre>publicKey</pre> (required): The public key of the container owner</li>
+                                <li><pre>X-r</pre> (required): The (bigInt) r - the integer retrieved from the signature</li>
+                                <li><pre>X-s</pre> (required): The (bigInt) s - the integer retrieved from the signature</li>
+                                <li><pre>Content-Type: multipart/form-data</pre> Currently only multipart/form-data is supported Currently max size is 32 MB</li>
+                            </ul>
+                            <h3>Response</h3>
+                            <h4>Success</h4>
+                            <ul>
+                                <li>Response code: 200</li>
+                                <li><pre>Content: {objectId}</pre></li>
+                            </ul>
+                            <h4>Bad Request</h4>
+                            <ul>
+                                <li>Response code: 400</li>
+                                <li><pre>Content: error message defining issue with request</pre></li>
+                            </ul>
+                            <h4>Server error</h4>
+                            <ul>
+                                <li>Response code: 502</li>
+                                <li><pre>Content: Issue with the session (recreate the signature)</pre></li>
+                                <li><pre>Content: Issue with the payload (the payload was not of the correct content-type)</pre></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                -->
+
+                <!--
+                <div class="card">
+                    <div class="card-header" id="listObjects">
+                        <h5 class="mb-0">
+                            <button class="btn btn-link" data-toggle="collapse" data-target="#collapselistObjects" aria-expanded="true" aria-controls="collapselistObjects">
+                                <span class="badge badge-primary">GET</span> List all the objects in a container
+                            </button>
+                        </h5>
+                    </div>
+                    <div id="collapselistObjects" class="collapse" aria-labelledby="listObjects" data-parent="#accordion">
+                        <div class="card-body">
+                            <pre>/object/{containerId}</pre>
+                            <h3>Request</h3>
+                            <h4>Headers</h4>
+                            <ul>
+                                <li><pre>containerId</pre> (required): The ID of the container to upload the object to</li>
+                                <li><pre>publicKey</pre> (required): The public key of the container owner</li>
+                                <li><pre>X-r</pre> (required): The (bigInt) r - the integer retrieved from the signature</li>
+                                <li><pre>X-s</pre> (required): The (bigInt) s - the integer retrieved from the signature</li>
+                                <li><pre>Content-Type: multipart/form-data</pre> Currently only multipart/form-data is supported</li>
+                            </ul>
+                            <p>The payload should be multipart/form-data</p>
+                            <h3>Response</h3>
+                            <h4>Success</h4>
+                            <ul>
+                                <li>Response code: 200</li>
+                                <li><pre>Content: [{objectId}, {objectId}, {objectId}]</pre></li>
+                            </ul>
+                            <h4>Bad Request</h4>
+                            <ul>
+                                <li>Response code: 400</li>
+                                <li><pre>Content: error message defining issue with request</pre></li>
+                            </ul>
+                            <h4>Server error</h4>
+                            <ul>
+                                <li>Response code: 502</li>
+                                <li><pre>Content: Issue with the session (recreate the signature)</pre></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                -->
+
+                <!-- 
+                <div class="card">
+                    <div class="card-header" id="getObject">
+                        <h5 class="mb-0">
+                            <button class="btn btn-link" data-toggle="collapse" data-target="#collapseGetObject" aria-expanded="true" aria-controls="collapseGetObject">
+                                <span class="badge badge-primary">GET</span> Get an Object (payload)
+                            </button>
+                        </h5>
+                    </div>
+                    <div id="collapseGetObject" class="collapse" aria-labelledby="getObject" data-parent="#accordion">
+                        <div class="card-body">
+                            <pre>/object/{containerId}/{objectId}</pre>
+                            <h3>Request</h3>
+                            <h4>Headers</h4>
+                            <ul>
+                                <li><pre>containerId</pre> (required): The ID of the container to upload the object to</li>
+                                <li><pre>publicKey</pre> (required): The public key of the container owner</li>
+                                <li><pre>X-r</pre> (required): The (bigInt) r - the integer retrieved from the signature</li>
+                                <li><pre>X-s</pre> (required): The (bigInt) s - the integer retrieved from the signature</li>
+                                <li><pre>Content-Type: multipart/form-data</pre> Currently only multipart/form-data is supported</li>
+                            </ul>
+                            <p>The payload should be multipart/form-data</p>
+                            <h3>Response</h3>
+                            <h4>Success</h4>
+                            <ul>
+                                <li>Header: <pre>NEOFS-META: {metadata}</pre></li>
+                                <li>Response code: 200</li>
+                                <li><pre>Content: []byte</pre><li>
+                            </ul>
+                            <h4>Bad Request</h4>
+                            <ul>
+                                <li>Response code: 400</li>
+                                <li><pre>Content: error message defining issue with request</pre><li>
+                            </ul>
+                            <h4>Server error</h4>
+                            <ul>
+                                <li>Response code: 502</li>
+                                <li><pre>Content: Issue with the session (recreate the signature)</pre><li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                -->
+
+                <!-- 
+                <div class="card">
+                    <div class="card-header" id="getObjectHead">
+                        <h5 class="mb-0">
+                            <button class="btn btn-link" data-toggle="collapse" data-target="#collapseGetObjectHead" aria-expanded="true" aria-controls="collapseGetObjectHead">
+                                <span class="badge badge-primary">HEAD</span> <span class="badge badge-primary">GET</span> Get an objects metadata
+                            </button>
+                        </h5>
+                    </div>
+                    <div id="collapseGetObjectHead" class="collapse" aria-labelledby="getObjectHead" data-parent="#accordion">
+                        <div class="card-body">
+                            <pre>HEAD /object/{containerId}/{objectId}</pre>
+                            <pre>GET /object/data/{containerId}/{objectId}</pre>
+
+                            <b>Not all servers respect the HEAD method</b>
+                            <h3>Request</h3>
+                            <h4>Headers</h4>
+                            <ul>
+                                <li><pre>containerId</pre> (required): The ID of the container to upload the object to</li>
+                                <li><pre>publicKey</pre> (required): The public key of the container owner</li>
+                                <li><pre>X-r</pre> (required): The (bigInt) r - the integer retrieved from the signature</li>
+                                <li><pre>X-s</pre> (required): The (bigInt) s - the integer retrieved from the signature</li>
+                                <li><pre>Content-Type: multipart/form-data</pre> Currently only multipart/form-data is supported</li>
+                            </ul>
+                            <p>The payload should be multipart/form-data</p>
+                            <h3>Response</h3>
+                            <h4>Success</h4>
+                            <ul>
+                                <li>Header: <pre>NEOFS-META: {metadata}</pre></li>
+                                <li>Response code: 200</li>
+                            </ul>
+                            <h4>Bad Request</h4>
+                            <ul>
+                                <li>Response code: 400</li>
+                                <li><pre>Content: error message defining issue with request</pre><li>
+                            </ul>
+                            <h4>Server error</h4>
+                            <ul>
+                                <li>Response code: 502</li>
+                                <li><pre>Content: Issue with the session (recreate the signature)</pre><li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                -->
+
+                <!--
+                <div class="card">
+                    <div class="card-header" id="deleteObject">
+                        <h5 class="mb-0">
+                            <button class="btn btn-link" data-toggle="collapse" data-target="#collapseDeleteObject" aria-expanded="true" aria-controls="collapseDeleteObject">
+                                <span class="badge badge-primary">DELETE</span> - Delete an object
+                            </button>
+                        </h5>
+                    </div>
+                    <div id="collapseDeleteObject" class="collapse" aria-labelledby="deleteObject" data-parent="#accordion">
+                        <div class="card-body">
+                            <pre>/object/{containerId}/{objectId}</pre>
+                            <h3>Request</h3>
+                            <h4>Headers</h4>
+                            <ul>
+                                <li><pre>containerId</pre> (required): The ID of the container to upload the object to</li>
+                                <li><pre>publicKey</pre> (required): The public key of the container owner</li>
+                                <li><pre>X-r</pre> (required): The (bigInt) r - the integer retrieved from the signature</li>
+                                <li><pre>X-s</pre> (required): The (bigInt) s - the integer retrieved from the signature</li>
+                                <li><pre>Content-Type: multipart/form-data</pre> Currently only multipart/form-data is supported</li>
+                            </ul>
+                            <p>The payload should be multipart/form-data</p>
+                            <h3>Response</h3>
+                            <h4>Success</h4>
+                            <ul>
+                                <li>Response code: 204</li>
+                            </ul>
+                            <h4>Bad Request</h4>
+                            <ul>
+                                <li>Response code: 400</li>
+                                <li><pre>Content: error message defining issue with request</pre><li>
+                            </ul>
+                            <h4>Server error</h4>
+                            <ul>
+                                <li>Response code: 502</li>
+                                <li><pre>Content: Issue with the session (recreate the signature)</pre><li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                -->
+
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h3 class="card-title">Greenfinch API Sandbox</h3>
+                        <h5 class="card-text">You can try out the API here</h5>
+                        <p>In short, this API allows a container owner to interact with their container and objects over HTTP without sharing their private key. <br />You need to have
+                        <ul>
+                            <li>A containerID and the public key of the container owner. Send these to the API to receive a bearer token.</li>
+                            <li>Use this token and your private key to sign the bearer token.</li>
+                            <li>Now you can upload an object</li>
+                            <li>Or you can retrieve details of an object</li>
+                            <li>Or you can list all objects</li>
+                            <li>Or you can delete an object</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">1. Request new bearer token</h5>
+                        <p class="card-text">before any request you will need a bearer token. You can specify how long a token should last.</p>
+                        <div class="input-group mb-3">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">public key</span>
+                            </div>
+                            <input type="text" class="form-control" id="publicKey" aria-describedby="basic-addon3" value="">
+                        </div>
+                        <div class="input-group mb-3">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">container ID</span>
+                            </div>
+                            <input type="text" class="form-control" id="containerID" aria-describedby="basic-addon3" value="">
+                        </div>
+                        <button class="btn btn-primary" id="getBearerToken">Request Token</button>
+                        <span>
+                            <pre id="token"></pre>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">2. Sign the bearer token</h5>
+                        <p class="card-text">Now, with your private key, you need to sign the bearer token. This will respond with two integers, r and s</p>
+                        <div class="input-group mb-3">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">private key</span>
+                            </div>
+                            <input type="password" class="form-control" id="privateKey" aria-describedby="basic-addon3" value="">
+                        </div>
+                        <button class="btn btn-primary" id="signToken">Sign Token</button>
+                        <span>
+                            <pre id="signature"></pre>
+    <!--                        <button onClick="getBearerToken()">Click me</button>-->
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">3. Use the signature to upload</h5>
+                        <p class="card-text">Use the signature to upload some data to the contain.</p>
+
+                        <div class="input-group mb-3">
+                            <div class="dropdown">
+                                <button class="btn btn-secondary dropdown-toggle" href="#" type="button" id="uploadDropDown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    Select file type
+                                </button>
+                              
+                                <ul class="dropdown-menu" aria-labelledby="uploadDropDownButton" id="uploadDropDownButton">
+                                    <li><a class="dropdown-item upload" href="#">multipart/form-data</a></li>
+                                    <li><a class="dropdown-item upload" href="#">text/plain</a></li>
+                                </ul>
+                                <span id="content-type-selector"></span>
+                            </div>
+                            <!-- 
+                            <div class="dropdown">
+                                <button class="btn btn-secondary dropdown-toggle" type="button" id="uploadDropDown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    Select file type
+                                </button>
+                                <div class="dropdown-menu" aria-labelledby="uploadDropDownButton" id="uploadDropDownButton">
+                                    <a class="dropdown-item upload" href="#">multipart/form-data</a>
+                                    <a class="dropdown-item upload" href="#">text/plain</a>
+                                </div>
+                                <span id="content-type-selector"></span>
+                            </div>
+                            -->
+                        </div>
+
+                        <div id="multipart-upload" style="display: none;">
+                        <label for="file">choose a file to upload</label>
+                        <input type="file" id="file" name="file">
+                        </div>
+                        <div id="rawContent-upload" style="display: none;">
+                            <label for="rawContent-attributes">set the name for the content</label><br />
+                            <input type="text" class="form-control" id="rawContentFileName" aria-describedby="basic-addon3" value="shakespeare-content.json">
+                            <label for="rawContent-attributes">set the attributes for the upload</label><br />
+                            <textarea rows="4" cols="50" id="rawContent-attributes">
+    {
+        "Author Type":"Poetry/fiction"
+    }
+                            </textarea><br />
+                            <label for="raw-content">set the data to upload</label><br />
+                            <textarea rows="4" cols="50" id="raw-content">
+    {
+        "title":"The complete works of William Shakespeare",
+        "birth": "26.04.1564",
+        "died": "23.04.1616"
+    }
+                            </textarea>
+                        </div>
+                        <button class="btn btn-primary" id="uploadButton">Upload</button>
+                        <span>
+                            <pre id="uploadResponse"></pre>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">4. Use the signature to retrieve</h5>
+                        <p class="card-text">The signature can now be used to make a request.<br>
+                        <strong>NB. You do need to have the file type above selected first.</strong></p>
+                        <div class="input-group mb-3">
+                             
+                            <div class="dropdown">
+                                <button class="btn btn-secondary dropdown-toggle" href="#" type="button" id="methodDropDown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    Select method
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="methodDropDownButton" id="methodDropDownButton">
+                                    <li><a class="dropdown-item method" href="#">GET</a></li>
+                                    <li><a class="dropdown-item method" href="#">LIST</a></li>
+                                    <li><a class="dropdown-item method" href="#">DELETE</a></li>
+                                </ul>
+                                <span id="content-type-selector"></span>
+                            </div>
+                            <!-- 
+                            <div class="dropdown">
+                                <button class="btn btn-secondary dropdown-toggle" type="button" id="methodDropDown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    Select Method
+                                </button>
+                                <div class="dropdown-menu" aria-labelledby="methodDropDownButton" id="methodDropDownButton">
+                                    <a class="dropdown-item method" href="#">GET</a>
+                                    <a class="dropdown-item method" href="#">LIST</a>
+                                    <a class="dropdown-item method" href="#">DELETE</a>
+                                </div>
+                                <span id="method-type-selector"></span>
+                            </div>
+                            -->
+                        </div>
+                        <div class="input-group mb-3">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">objectID</span>
+                            </div>
+                            <input type="text" class="form-control" id="objectID" aria-describedby="basic-addon3" value="">
+                        </div>
+                        <button class="btn btn-primary" id="requestResponse">Make request</button>
+                        <button class="btn btn-primary" id="decodeContent">Decode</button>
+                        <span>
+                            <pre id="metadata"></pre>
+                            <pre id="decodedContent"></pre>
+                            <div id="displayImage"></div>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
 </body>
 <script>
     const domain = "https://api.greenfinch.app"//"http://localhost:9000"
