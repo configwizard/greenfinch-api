@@ -1,5 +1,8 @@
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Greenfinch API</title>
+
     <script src="https://unpkg.com/@cityofzion/neon-js@next"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-sha512/0.8.0/sha512.min.js" integrity="sha512-KUrAWA1oxsWKHBaA2mlZyRuR8zzzHHYgpDfkfPrT3FhlZ4YdXbXyE89VHI6WmWradSHtuZjLyLAMP2F7IWK4JQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
    
@@ -9,6 +12,12 @@
     
     <!-- Stylesheet -->
     <link rel="stylesheet" href="styles.css">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+
+    <!-- Font Awesome -->
+    <script src="https://kit.fontawesome.com/6b4fb8a528.js" crossorigin="anonymous"></script>
 
     <!-- 
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
@@ -32,7 +41,9 @@
             <div class="col-12">
                 <div class="card ut-bgcolor">
                     <div class="card-body">
-                        <h2 class="card-title"><img class="ut-logo" src="assets/greenfinch-logo-v1.svg">Greenfinch API</h2>
+                        <div class="d-flex align-items-center" style="margin-bottom: 15px;">
+                            <img class="ut-logo" src="assets/greenfinch-logo-v1.svg"><h2 class="card-title">Greenfinch API</h2>
+                        </div>
                         <h5 class="card-text">This is an HTTP API into the NeoFS file system.</h5>
                         <p>Currently this has initial support for object management. Please also see the following links:</p>
                         <ul class="ut-outline">
@@ -253,7 +264,9 @@
             <div class="col-12">
                 <div class="card ut-bgcolor">
                     <div class="card-body">
-                        <h2 class="card-title"><img class="ut-logo" src="assets/greenfinch-logo-v1.svg">Greenfinch API Sandbox</h2>
+                        <div class="d-flex align-items-center" style="margin-bottom: 15px;">
+                            <img class="ut-logo" src="assets/greenfinch-logo-v1.svg"><h2 class="card-title">Greenfinch API Sandbox</h2>
+                        </div>
                         <h5 class="card-text">Try the API here.</h5>
                         <p>In short, this API allows a container owner to interact with their container and objects over HTTP without sharing their private key.</p>
                         <p><strong>You need to have the following:</strong></p>
@@ -423,8 +436,22 @@
                 </div>
             </div>
         </div>
-
     </div>
+    <section class="keyEmail text-center">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-12 col-md-6">
+                    <i class="fa-brands fa-2x fa-discord"></i>
+                    <p>How can we improve Greenfinch? Find us on <a href="https://discord.gg/EeZtA2b7PQ" title="Greenfinch Discord" target="_blank">Discord</a>.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="text-center">
+		<p>&copy; 2022 Greenfinch. All rights reserved.</p>
+	</footer>
+
 </body>
 <script>
     const domain = "https://api.greenfinch.app"//"http://localhost:9000"

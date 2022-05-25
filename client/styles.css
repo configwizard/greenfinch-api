@@ -148,3 +148,28 @@ img.ut-logo {
     font-family: 'AvertaStdPESemiBold', sans-serif !important;
     font-weight: unset;
 }
+
+.keyEmail p {
+    font-family: 'AvertaStdPESemiBold', sans-serif;
+    font-size: 1.05rem;
+    color: #2b393f;
+}
+
+.keyEmail p strong {
+    font-family: 'AvertaStdPEBold', sans-serif;
+}
+
+.keyEmail i.fa-discord {
+    color: #5865F2; /* Discord blue */
+}
+
+.keyEmail i.fa-github {
+	color: #24292f;
+}
+
+/* Footer */
+footer p {
+    font-family: 'AvertaStdPESemiBold', sans-serif;
+	color: #2b393f;
+	font-size: 0.8rem;
+}
