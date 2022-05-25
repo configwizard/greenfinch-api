@@ -18,12 +18,6 @@ body {
     background-color:#f0f5f6;
     color: #2b393f;
 }
-.card {
-    background-color: rgba(255, 255, 255, 0.2);
-}
-.card.ut-bgcolor {
-    background-color: rgba(255, 255, 255, 0.5);
-}
 
 strong {
     font-family: 'AvertaStdPESemiBold', sans-serif;
@@ -94,11 +88,7 @@ li {
     margin-bottom: 10px;
 }
 
-img.ut-logo {
-    height: 40px;
-    display: inline;
-    margin-right: 10px;
-}
+
 
 /* Layout */
 .row {
@@ -111,6 +101,20 @@ img.ut-logo {
 
 .row:last-child {
     margin-bottom: 20px;
+}
+
+.card {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.card.ut-bgcolor {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+img.ut-logo {
+    height: 50px;
+    display: inline;
+    margin-right: 10px;
 }
 
 /* Accordion */
