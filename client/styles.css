@@ -1,6 +1,26 @@
+@import url("//hello.myfonts.net/count/3e7d84");
+
+@font-face {
+    font-family: 'AvertaStdPERegular';
+    src: url('assets/fonts/AvertaStdPERegular/font.woff2') format('woff2'), url('assets/fonts/AvertaStdPERegular/font.woff') format('woff');
+}
+@font-face {
+    font-family: 'AvertaStdPESemibold';
+    src: url('assets/fonts/AvertaStdPESemibold/font.woff2') format('woff2'), url('assets/fonts/AvertaStdPESemibold/font.woff') format('woff');
+}
+@font-face {
+    font-family: 'AvertaStdPEBold';
+    src: url('assets/fonts/AvertaStdPEBold/font.woff2') format('woff2'), url('assets/fonts/AvertaStdPEBold/font.woff') format('woff');
+}
+
 body {
+    font-family: 'AvertaStdPERegular', sans-serif;
     background-color: rgba(0, 0, 0, 0.02);
     color: #2b393f;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'AvertaStdPESemiBold', sans-serif;
 }
 
 /* Layout */
