@@ -122,7 +122,6 @@
                                     <li><pre class="ut-inline">publicKey</pre><span class="ut-required">(required)</span>: The public key of the container owner</li>
                                     <li><pre class="ut-inline">X-r</pre><span class="ut-required">(required)</span>: The (bigInt) r - the integer retrieved from the signature</li>
                                     <li><pre class="ut-inline">X-s</pre><span class="ut-required">(required)</span>: The (bigInt) s - the integer retrieved from the signature</li>
-                                    <li><pre class="ut-inline">Content-Type: multipart/form-data</pre> Currently only multipart/form-data is supported</li>
                                 </ul>
                                 <h3>Response</h3>
                                 <h4 class="ut-uc">Success</h4>
@@ -202,7 +201,6 @@
                                     <li><pre class="ut-inline">publicKey</pre><span class="ut-required">(required)</span>: The public key of the container owner</li>
                                     <li><pre class="ut-inline">X-r</pre><span class="ut-required">(required)</span>: The (bigInt) r - the integer retrieved from the signature</li>
                                     <li><pre class="ut-inline">X-s</pre><span class="ut-required">(required)</span>: The (bigInt) s - the integer retrieved from the signature</li>
-                                    <li><pre class="ut-inline">Content-Type: multipart/form-data</pre> Currently only multipart/form-data is supported</li>
                                 </ul>
                                 <h3>Response</h3>
                                 <h4 class="ut-uc">Success</h4>
@@ -240,7 +238,6 @@
                                     <li><pre class="ut-inline">publicKey</pre><span class="ut-required">(required)</span>: The public key of the container owner</li>
                                     <li><pre class="ut-inline">X-r</pre><span class="ut-required">(required)</span>: The (bigInt) r - the integer retrieved from the signature</li>
                                     <li><pre class="ut-inline">X-s</pre><span class="ut-required">(required)</span>: The (bigInt) s - the integer retrieved from the signature</li>
-                                    <li><pre class="ut-inline">Content-Type: multipart/form-data</pre> Currently only multipart/form-data is supported</li>
                                 </ul>
                                 <h3>Response</h3>
                                 <h4 class="ut-uc">Success</h4>
@@ -272,6 +269,7 @@
                         </div>
                         <h5 class="card-text">Try the API here.</h5>
                         <p>In short, this API allows a container owner to interact with their container and objects over HTTP without sharing their private key.</p>
+                        <p><strong>Watch a demo video of <a class="ut-standard" href="https://www.youtube.com/watch?v=0DcNxWtjDbo">using the Sandbox here</a></strong></p>
                         <p><strong>You need to have the following:</strong></p>
                         <ul>
                             <li>A containerID and the public key of the container owner</li>
@@ -458,7 +456,7 @@
 
 </body>
 <script>
-    const domain = "http://localhost:9000"
+    const domain = "https://api.greenfinch.app"//"http://localhost:9000"
     let contentTypeUpload, contentTypeDownload, methodTypeUpload = null
 
     // // Size should be given in 'bytes'
