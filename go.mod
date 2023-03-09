@@ -3,10 +3,8 @@ module github.com/configwizard/greenfinch-api
 go 1.18
 
 require (
-	github.com/nspcc-dev/neo-go v0.98.1
-	//	github.com/nspcc-dev/neofs-api-go/v2 v2.11.2-0.20220114101721-227a871a04ac
-	//	github.com/nspcc-dev/neofs-sdk-go v0.0.0-20220119080627-f83ff628fb19
-	github.com/nspcc-dev/neofs-sdk-go v1.0.0-rc.2
+	github.com/nspcc-dev/neo-go v0.101.0
+	github.com/nspcc-dev/neofs-sdk-go v1.0.0-rc.7.0.20221115140820-b4b07a3c4e11
 )
 
 require (
@@ -15,7 +13,6 @@ require (
 )
 
 require (
-	github.com/configwizard/gaspump-api v0.3.4
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.0
 	github.com/machinebox/progress v0.2.0
@@ -72,4 +69,3 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
-//replace github.com/configwizard/gaspump-api => /Users/alex.walker/go/src/github.com/configwizard/gaspump-api
