@@ -4,7 +4,6 @@ import (
 	"crypto/ecdsa"
 	b64 "encoding/base64"
 	"encoding/json"
-	"fmt"
 	gspool "github.com/configwizard/greenfinch-api/api/pkg/pool"
 	"github.com/go-chi/chi/v5"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
@@ -31,7 +30,7 @@ func PUTAllowDenyOthersEACL(containerID cid.ID, allowedPubKey *keys.PublicKey) e
 	table.SetCID(containerID)
 
 	if allowedPubKey != nil {
-		target := eacl.NewTarget()
+		var target eacl.Target
 		target.SetBinaryKeys([][]byte{allowedPubKey.Bytes()})
 
 		allowPutRecord := eacl.NewRecord()

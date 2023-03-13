@@ -79,6 +79,9 @@ func BuildBearerToken(table *eacl.Table, lIat, lNbf, lExp uint64, gateKey *keys.
  	bearerToken.WriteToV2(&bearerV2)
 	bearerV2.SetSignature(v2signature)
 	err := bearerToken.ReadFromV2(bearerV2)
+	if verified := bearerToken.VerifySignature(); !verified {
+		return nil, errors.New("could not verify signature")
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +103,7 @@ func BuildObjectSessionToken(lIat, lNbf, lExp uint64, verb session.ObjectVerb, c
 	}
 	tok.SetAuthKey(&keySession)
 	tok.SetID(idSession)
-	tok.SetIat(lIat) //is there a way to dynamically get these at runtime see CalculateEpochsForTime commented above. Can this be done?
+	tok.SetIat(lIat) 
 	tok.SetNbf(lNbf)
 	tok.SetExp(lExp)
 	tok.BindContainer(cnrID)

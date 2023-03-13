@@ -5,10 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
-	v2 "github.com/nspcc-dev/neofs-api-go/v2/acl"
-	"github.com/nspcc-dev/neofs-api-go/v2/refs"
 	"github.com/nspcc-dev/neofs-sdk-go/client"
-	"github.com/nspcc-dev/neofs-sdk-go/token"
 	"log"
 	"math/big"
 )
@@ -22,23 +19,23 @@ func GetHelperTokenExpiry(ctx context.Context, cli *client.Client) uint64 {
 	expire := ni.Info().CurrentEpoch() + 10 // valid for 10 epochs (~ 10 hours)
 	return expire
 }
-
-func VerifySignature(bearer *v2.BearerToken, signatureData []byte, k keys.PublicKey) (*token.BearerToken, error) {
-	v2signature := new(refs.Signature)
-	v2signature.SetScheme(refs.ECDSA_SHA512)
-	v2signature.SetSign(signatureData)
-	v2signature.SetKey(k.Bytes())
-
-	bearer.SetSignature(v2signature)
-
-	newBearer := token.NewBearerTokenFromV2(bearer)
-	err := newBearer.VerifySignature()
-	if err != nil {
-		fmt.Println("error verifying signature", err)
-		return nil, errors.New("could not verify signature" + err.Error())
-	}
-	return newBearer, nil
-}
+//
+//func VerifySignature(bearer *v2.BearerToken, signatureData []byte, k keys.PublicKey) (*token.BearerToken, error) {
+//	v2signature := new(refs.Signature)
+//	v2signature.SetScheme(refs.ECDSA_SHA512)
+//	v2signature.SetSign(signatureData)
+//	v2signature.SetKey(k.Bytes())
+//
+//	bearer.SetSignature(v2signature)
+//
+//	newBearer := token.NewBearerTokenFromV2(bearer)
+//	err := newBearer.VerifySignature()
+//	if err != nil {
+//		fmt.Println("error verifying signature", err)
+//		return nil, errors.New("could not verify signature" + err.Error())
+//	}
+//	return newBearer, nil
+//}
 
 func GetPublicKey(ctx context.Context) (*keys.PublicKey, error, int) {
 	//ctx := r.Context()

@@ -1,12 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"crypto/sha512"
 	_ "embed"
 	"errors"
 	"flag"
@@ -45,7 +41,7 @@ var (
 	containerID = flag.String("containerID", "", "use a specific container to upload an object to")
 	//createWallet = flag.Bool("create", false, "create a wallets")
 	//useBearerToken = flag.Bool("bearer", false, "use a bearer token")
-	configLocation = flag.String("password", os.Getenv("CONFIG_LOCATION"), "wallet password")
+	configLocation = flag.String("config", "./", "wallet password")
 	password = flag.String("password", os.Getenv("WALLET_KEY"), "wallet password")
 )
 
