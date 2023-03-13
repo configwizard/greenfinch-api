@@ -5,13 +5,13 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	gspool "github.com/configwizard/greenfinch-api/api/pkg/pool"
+	"github.com/configwizard/greenfinch-api/api/pkg/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
 	"github.com/nspcc-dev/neofs-api-go/v2/acl"
 	"github.com/nspcc-dev/neofs-sdk-go/bearer"
 	cid "github.com/nspcc-dev/neofs-sdk-go/container/id"
 	"github.com/nspcc-dev/neofs-sdk-go/eacl"
-	"github.com/nspcc-dev/neofs-sdk-go/pool"
 	"github.com/nspcc-dev/neofs-sdk-go/user"
 	"log"
 	"net/http"
@@ -53,10 +53,22 @@ func PUTAllowDenyOthersEACL(containerID cid.ID, allowedPubKey *keys.PublicKey) e
 
 	return *table
 }
-func UnsignedBearerToken(serverPrivateKey *keys.PrivateKey, pl pool.Pool) http.HandlerFunc {
+func UnsignedBearerToken(serverPrivateKey *keys.PrivateKey) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		iAt, exp, err := gspool.TokenExpiryValue(ctx, pl, 100)
+		storageNodes, err := utils.RetrieveStorageNode(ctx)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		pl, err := gspool.GetPool(ctx, serverPrivateKey.PrivateKey, storageNodes)
+		if err != nil {
+			log.Println("error could not instantiate pool", err)
+			http.Error(w, err.Error(), 502)
+			return
+		}
+		iAt, exp, err := gspool.TokenExpiryValue(ctx, *pl, 100)
 		if err != nil {
 			log.Println("cannot generate expiration", err)
 			http.Error(w, err.Error(), 400)

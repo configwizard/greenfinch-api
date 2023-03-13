@@ -10,12 +10,12 @@ import (
 	"fmt"
 	gspool "github.com/configwizard/greenfinch-api/api/pkg/pool"
 	"github.com/configwizard/greenfinch-api/api/pkg/tokens"
+	"github.com/configwizard/greenfinch-api/api/pkg/utils"
 	"github.com/google/uuid"
 	apistatus "github.com/nspcc-dev/neofs-sdk-go/client/status"
 	neofsecdsa "github.com/nspcc-dev/neofs-sdk-go/crypto/ecdsa"
 	"github.com/nspcc-dev/neofs-sdk-go/session"
 
-	"github.com/configwizard/greenfinch-api/api/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
 	"github.com/nspcc-dev/neofs-api-go/v2/acl"
@@ -38,7 +38,7 @@ import (
 )
 
 
-const uriAddr = "grpcs://st1.t5.fs.neo.org:8082"
+//const uriAddr = "grpcs://st1.t5.fs.neo.org:8082"
 func isErrAccessDenied(err error) (string, bool) {
 	unwrappedErr := errors.Unwrap(err)
 	for unwrappedErr != nil {
@@ -160,24 +160,36 @@ func BuildObjectSessionToken(lIat, lNbf, lExp uint64, verb session.ObjectVerb, c
 // @Router       /object/{containerId}/{objectId} [head]
 // @response     default
 // @Header       200              {string}  NEOFS-META  "The base64 encoded version of the binary bearer token ready for signing"
-func GetObjectHead(serverPrivateKey *keys.PrivateKey, pl pool.Pool) http.HandlerFunc {
+func GetObjectHead(serverPrivateKey *keys.PrivateKey) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		storageNodes, err := utils.RetrieveStorageNode(ctx)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		pl, err := gspool.GetPool(ctx, serverPrivateKey.PrivateKey, storageNodes)
+		if err != nil {
+			log.Println("error could not instantiate pool", err)
+			http.Error(w, err.Error(), 502)
+			return
+		}
 		//this is all going to get done regularly and thus should be a middleware
 		cntID := cid.ID{}
-		err := cntID.Decode([]byte(chi.URLParam(r, "containerId")))
-		if err != nil {
+
+		if err := cntID.Decode([]byte(chi.URLParam(r, "containerId"))); err != nil {
 			log.Println("no container id", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
 		objID := oid.ID{}
-		err = objID.Decode([]byte(chi.URLParam(r, "objectId")))
-		if err != nil {
+
+		if err := objID.Decode([]byte(chi.URLParam(r, "objectId"))); err != nil {
 			log.Println("no object id", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		ctx := r.Context()
 
 		sigR, sigS, err := utils.RetrieveSignatureParts(ctx)
 		if err != nil {
@@ -185,21 +197,29 @@ func GetObjectHead(serverPrivateKey *keys.PrivateKey, pl pool.Pool) http.Handler
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		iAt, exp, err := gspool.TokenExpiryValue(ctx, pl, 100)
+		iAt, exp, err := gspool.TokenExpiryValue(ctx, *pl, 100)
 		if err != nil {
 			log.Println("cannot generate expiration", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
+		target := eacl.Target{}
+		target.SetRole(eacl.RoleUser)
+		target.SetBinaryKeys([][]byte{serverPrivateKey.PublicKey().Bytes()})
+		table, err := tokens.AllowHead(cntID, target)
+		if err != nil {
+			log.Println("error creating access table ", err)
+			http.Error(w, err.Error(), 400)
+		}
 		//(table *eacl.Table, lIat, lNbf, lExp uint64, gateKey *keys.PublicKey, sigR, sigS big.Int) (*bearer.Token, error) {
-		bearer, err := BuildBearerToken(&eacl.Table{}, iAt, iAt, exp, serverPrivateKey.PublicKey(), sigR, sigS)
+		bearer, err := BuildBearerToken(&table, iAt, iAt, exp, serverPrivateKey.PublicKey(), sigR, sigS)
 		if err != nil {
 			log.Println("cannot generate bearer token", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
 
-		content, err := getObjectMetaData(ctx, objID, cntID, *bearer, pl)
+		content, err := getObjectMetaData(ctx, objID, cntID, *bearer, *pl)
 		if err != nil {
 			log.Println("cannot retrieve metadata", err)
 			http.Error(w, err.Error(), 502)
@@ -250,36 +270,48 @@ func getObjectMetaData(ctx context.Context, objectID oid.ID, containerID cid.ID,
 // @Failure      400  {object}  HTTPClientError
 // @Failure      502  {object}  HTTPServerError
 // @Router       /object/{containerId}/ [get]
-func ListObjectsInContainer(serverPrivateKey *keys.PrivateKey, pl pool.Pool) http.HandlerFunc {
+func ListObjectsInContainer(serverPrivateKey *keys.PrivateKey) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var cntID cid.ID
-		err := cntID.Decode([]byte(chi.URLParam(r, "containerId")))
+		ctx := r.Context()
+		storageNodes, err := utils.RetrieveStorageNode(ctx)
 		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		pl, err := gspool.GetPool(ctx, serverPrivateKey.PrivateKey, storageNodes)
+		if err != nil {
+			log.Println("error could not instantiate pool", err)
+			http.Error(w, err.Error(), 502)
+			return
+		}
+		var cntID cid.ID
+		if err := cntID.Decode([]byte(chi.URLParam(r, "containerId"))); err != nil {
 			log.Println("no container id", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
-
-		ctx := r.Context()
-		//k, err, code := utils.GetPublicKey(ctx)
-		//if err != nil {
-		//	log.Println("no public key", err)
-		//	http.Error(w, err.Error(), code)
-		//	return
-		//}
 		sigR, sigS, err := utils.RetrieveSignatureParts(ctx)
 		if err != nil {
 			log.Println("cannot generate signature", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		iAt, exp, err := gspool.TokenExpiryValue(ctx, pl, 100)
+		iAt, exp, err := gspool.TokenExpiryValue(ctx, *pl, 100)
 		if err != nil {
 			log.Println("cannot generate expiration", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		bearer, err := BuildBearerToken(&eacl.Table{}, iAt, iAt, exp, serverPrivateKey.PublicKey(), sigR, sigS)
+		target := eacl.Target{}
+		target.SetRole(eacl.RoleUser)
+		target.SetBinaryKeys([][]byte{serverPrivateKey.PublicKey().Bytes()})
+		table, err := tokens.AllowList(cntID, target)
+		if err != nil {
+			log.Println("error creating access table ", err)
+			http.Error(w, err.Error(), 400)
+		}
+		bearer, err := BuildBearerToken(&table, iAt, iAt, exp, serverPrivateKey.PublicKey(), sigR, sigS)
 		if err != nil {
 			log.Println("cannot generate bearer token", err)
 			http.Error(w, err.Error(), 400)
@@ -339,23 +371,33 @@ type Object struct {
 // @Failure      400  {object}  HTTPClientError
 // @Failure      502  {object}  HTTPServerError
 // @Router       /object/{containerId}/{objectId} [get]
-func GetObject(serverPrivateKey *keys.PrivateKey, pl pool.Pool) http.HandlerFunc{
+func GetObject(serverPrivateKey *keys.PrivateKey) http.HandlerFunc{
 	return func(w http.ResponseWriter, r *http.Request) {
-		var cntID cid.ID
-		err := cntID.Decode([]byte(chi.URLParam(r, "containerId")))
+		ctx := r.Context()
+		storageNodes, err := utils.RetrieveStorageNode(ctx)
 		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		pl, err := gspool.GetPool(ctx, serverPrivateKey.PrivateKey, storageNodes)
+		if err != nil {
+			log.Println("error could not instantiate pool", err)
+			http.Error(w, err.Error(), 502)
+			return
+		}
+		var cntID cid.ID
+		if err := cntID.Decode([]byte(chi.URLParam(r, "containerId"))); err != nil {
 			log.Println("no container id", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
 		objID := oid.ID{}
-		err = objID.Decode([]byte(chi.URLParam(r, "objectId")))
-		if err != nil {
+		if err := objID.Decode([]byte(chi.URLParam(r, "objectId"))); err != nil {
 			log.Println("no object id", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		ctx := r.Context()
 		sigR, sigS, err := utils.RetrieveSignatureParts(ctx)
 		if err != nil {
 			log.Println("cannot generate signature", err)
@@ -363,7 +405,7 @@ func GetObject(serverPrivateKey *keys.PrivateKey, pl pool.Pool) http.HandlerFunc
 			return
 		}
 
-		iAt, exp, err := gspool.TokenExpiryValue(ctx, pl, 100)
+		iAt, exp, err := gspool.TokenExpiryValue(ctx, *pl, 100)
 		if err != nil {
 			log.Println("cannot generate expiration", err)
 			http.Error(w, err.Error(), 400)
@@ -377,7 +419,7 @@ func GetObject(serverPrivateKey *keys.PrivateKey, pl pool.Pool) http.HandlerFunc
 		prmCli := client.PrmInit{}
 		prmCli.SetDefaultPrivateKey(serverPrivateKey.PrivateKey)
 		var prmDial client.PrmDial
-		prmDial.SetServerURI(uriAddr)
+		prmDial.SetServerURI(storageNodes["0"].Address)
 		cli := client.Client{}
 		cli.Init(prmCli)
 		cli.Dial(prmDial)
@@ -457,16 +499,28 @@ func GetObject(serverPrivateKey *keys.PrivateKey, pl pool.Pool) http.HandlerFunc
 // @Failure 400 {object} HTTPClientError
 // @Failure 404 {object} HTTPServerError
 // @Router /object/{containerId} [post]
-func UploadObject(serverPrivateKey *keys.PrivateKey, pl pool.Pool) http.HandlerFunc {
+func UploadObject(serverPrivateKey *keys.PrivateKey) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var cntID cid.ID
-		err := cntID.Decode([]byte(chi.URLParam(r, "containerId")))
+		ctx := r.Context()
+		storageNodes, err := utils.RetrieveStorageNode(ctx)
 		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		pl, err := gspool.GetPool(ctx, serverPrivateKey.PrivateKey, storageNodes)
+		if err != nil {
+			log.Println("error could not instantiate pool", err)
+			http.Error(w, err.Error(), 502)
+			return
+		}
+		var cntID cid.ID
+
+		if err := cntID.Decode([]byte(chi.URLParam(r, "containerId"))); err != nil {
 			log.Println("no container id", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		ctx := r.Context()
 		var userID user.ID
 		user.IDFromKey(&userID, (ecdsa.PublicKey)(*serverPrivateKey.PublicKey()))
 
@@ -477,7 +531,7 @@ func UploadObject(serverPrivateKey *keys.PrivateKey, pl pool.Pool) http.HandlerF
 			return
 		}
 
-		iAt, exp, err := gspool.TokenExpiryValue(ctx, pl, 100)
+		iAt, exp, err := gspool.TokenExpiryValue(ctx, *pl, 100)
 		if err != nil {
 			log.Println("cannot generate expiration", err)
 			http.Error(w, err.Error(), 400)
@@ -486,7 +540,7 @@ func UploadObject(serverPrivateKey *keys.PrivateKey, pl pool.Pool) http.HandlerF
 		prmCli := client.PrmInit{}
 		prmCli.SetDefaultPrivateKey(serverPrivateKey.PrivateKey)
 		var prmDial client.PrmDial
-		prmDial.SetServerURI(uriAddr)
+		prmDial.SetServerURI(storageNodes["0"].Address) //fixme - this should evolve with the chosen pl peer.
 		cli := client.Client{}
 		cli.Init(prmCli)
 		cli.Dial(prmDial)
@@ -603,32 +657,43 @@ func UploadObject(serverPrivateKey *keys.PrivateKey, pl pool.Pool) http.HandlerF
 // @Failure 400 {object} HTTPClientError
 // @Failure 404 {object} HTTPServerError
 // @Router /object/{containerId}/{objectId} [delete]
-func DeleteObject(serverPrivateKey *keys.PrivateKey, pl pool.Pool) http.HandlerFunc {
+func DeleteObject(serverPrivateKey *keys.PrivateKey) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		storageNodes, err := utils.RetrieveStorageNode(ctx)
+		if err != nil {
+			log.Println(err)
+			http.Error(w, err.Error(), 400)
+			return
+		}
+		pl, err := gspool.GetPool(ctx, serverPrivateKey.PrivateKey, storageNodes)
+		if err != nil {
+			log.Println("error could not instantiate pool", err)
+			http.Error(w, err.Error(), 502)
+			return
+		}
 		fmt.Println("chi.", r.RequestURI)
 		var cntID cid.ID
-		err := cntID.Decode([]byte(chi.URLParam(r, "containerId")))
-		if err != nil {
+
+		if err := cntID.Decode([]byte(chi.URLParam(r, "containerId"))); err != nil {
 			log.Println("no container id", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
 
 		objID := oid.ID{}
-		err = objID.Decode([]byte(chi.URLParam(r, "objectId")))
-		if err != nil {
+		if err := objID.Decode([]byte(chi.URLParam(r, "objectId"))); err != nil {
 			log.Println("no object id", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		ctx := r.Context()
 		sigR, sigS, err := utils.RetrieveSignatureParts(ctx)
 		if err != nil {
 			log.Println("cannot generate signature", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		iAt, exp, err := gspool.TokenExpiryValue(ctx, pl, 100)
+		iAt, exp, err := gspool.TokenExpiryValue(ctx, *pl, 100)
 		if err != nil {
 			log.Println("cannot generate expiration", err)
 			http.Error(w, err.Error(), 400)
@@ -636,7 +701,7 @@ func DeleteObject(serverPrivateKey *keys.PrivateKey, pl pool.Pool) http.HandlerF
 		}
 		target := eacl.Target{}
 		target.SetRole(eacl.RoleUser)
-		target.SetBinaryKeys([][]byte{serverPrivateKey.Bytes()})
+		target.SetBinaryKeys([][]byte{serverPrivateKey.PublicKey().Bytes()})
 		table, err := tokens.AllowDelete(cntID, target)
 		if err != nil {
 			log.Println("error creating access table ", err)

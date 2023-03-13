@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/configwizard/greenfinch-api/api/pkg/config"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
 	"github.com/nspcc-dev/neofs-sdk-go/client"
 	"log"
@@ -53,7 +54,13 @@ func GetPublicKey(ctx context.Context) (*keys.PublicKey, error, int) {
 	//this should really be the actor using the bearer token
 	return k, nil, 200
 }
-
+func RetrieveStorageNode(ctx context.Context) (map[string]config.Peer, error) {
+	network, ok := ctx.Value("network").(Network)
+	if !ok {
+		return nil, errors.New("could not retrieve network header. Are you sure it was set as part of the request?")
+	}
+	return networks[network].StorageNodes, nil
+}
 func RetrieveSignatureParts(ctx context.Context) (big.Int, big.Int, error){
 	stringR, ok := ctx.Value("stringR").(string)
 	if !ok {

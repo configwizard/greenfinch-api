@@ -41,7 +41,41 @@ func AllowDelete(cid cid.ID, toWhom eacl.Target) (eacl.Table, error) {
 	}
 	return table, nil
 }
+//AllowOthersReadOnly from https://github.com/nspcc-dev/neofs-s3-gw/blob/fdc07b8dc15272e2aabcbd7bb8c19e435c94e392/authmate/authmate.go#L358
+func AllowHead(cid cid.ID, toWhom eacl.Target) (eacl.Table, error) {
+	table := eacl.Table{}
+	//targetOthers := eacl.NewTarget()
+	//targetOthers.SetRole(eacl.RoleOthers)
 
+	record := eacl.NewRecord()
+	record.SetOperation(eacl.OperationHead)
+	record.SetAction(eacl.ActionAllow)
+	record.SetTargets(toWhom)
+
+	table.SetCID(cid)
+	table.AddRecord(record)
+	for _, v := range restrictedRecordsForOthers() {
+		table.AddRecord(v)
+	}
+	return table, nil
+}
+func AllowList(cid cid.ID, toWhom eacl.Target) (eacl.Table, error) {
+	table := eacl.Table{}
+	//targetOthers := eacl.NewTarget()
+	//targetOthers.SetRole(eacl.RoleOthers)
+
+	record := eacl.NewRecord()
+	record.SetOperation(eacl.OperationSearch)
+	record.SetAction(eacl.ActionAllow)
+	record.SetTargets(toWhom)
+
+	table.SetCID(cid)
+	table.AddRecord(record)
+	for _, v := range restrictedRecordsForOthers() {
+		table.AddRecord(v)
+	}
+	return table, nil
+}
 //AllowOthersReadOnly from https://github.com/nspcc-dev/neofs-s3-gw/blob/fdc07b8dc15272e2aabcbd7bb8c19e435c94e392/authmate/authmate.go#L358
 func AllowGetPut(cid cid.ID, toWhom eacl.Target) (eacl.Table, error) {
 	table := eacl.Table{}
