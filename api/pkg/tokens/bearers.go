@@ -76,7 +76,11 @@ func UnsignedBearerToken(serverPrivateKey *keys.PrivateKey) http.HandlerFunc {
 		}
 		//this public key should be the public key of the request sender (the server)
 		cntID := cid.ID{}
-		cntID.Decode([]byte(chi.URLParam(r, "containerId")))
+		if err := cntID.DecodeString(chi.URLParam(r, "containerId")); err != nil {
+			log.Println("no container ID", err)
+			http.Error(w, err.Error(), 400)
+			return
+		}
 		//kOwner := owner.NewIDFromPublicKey((*ecdsa.PublicKey)(serverPublicKey))
 		table := PUTAllowDenyOthersEACL(cntID, serverPrivateKey.PublicKey())//eacl2.PutAllowDenyOthersEACL(cntID, k)
 		//func NewBearerToken(tokenReceiver *owner.ID, expire uint64, eaclTable eacl.Table, sign bool, containerOwnerKey *ecdsa.PrivateKey) (*token.BearerToken, error){

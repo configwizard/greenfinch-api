@@ -163,15 +163,17 @@ func WalletCtx(next http.Handler) http.Handler {
 		stringR := r.Header.Get("X-r")
 		stringS := r.Header.Get("X-s")
 		network := r.Header.Get("X-network")
+		fmt.Println("network ", network)
 		if network == "" {
 			network = string(utils.Testnet) //default to testnet
 		}
 		if utils.Network(network) != utils.Mainnet && utils.Network(network) != utils.Testnet {
 			err := errors.New("no network named " + network)
-			log.Println("error could not instantiate pool", err)
+			log.Println("error could not get network", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
+		fmt.Println("network ", network)
 		ctx := context.WithValue(r.Context(), "publicKey", publicKey)
 		ctx = context.WithValue(ctx, "network", network)
 		ctx = context.WithValue(ctx, "stringR", stringR)

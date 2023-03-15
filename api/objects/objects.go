@@ -11,28 +11,28 @@ import (
 	gspool "github.com/configwizard/greenfinch-api/api/pkg/pool"
 	"github.com/configwizard/greenfinch-api/api/pkg/tokens"
 	"github.com/configwizard/greenfinch-api/api/pkg/utils"
-	"github.com/google/uuid"
-	apistatus "github.com/nspcc-dev/neofs-sdk-go/client/status"
-	neofsecdsa "github.com/nspcc-dev/neofs-sdk-go/crypto/ecdsa"
-	"github.com/nspcc-dev/neofs-sdk-go/session"
-
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/nspcc-dev/neo-go/pkg/crypto/keys"
 	"github.com/nspcc-dev/neofs-api-go/v2/acl"
 	"github.com/nspcc-dev/neofs-api-go/v2/refs"
 	v2session "github.com/nspcc-dev/neofs-api-go/v2/session"
 	"github.com/nspcc-dev/neofs-sdk-go/bearer"
 	"github.com/nspcc-dev/neofs-sdk-go/client"
+	apistatus "github.com/nspcc-dev/neofs-sdk-go/client/status"
 	cid "github.com/nspcc-dev/neofs-sdk-go/container/id"
+	neofsecdsa "github.com/nspcc-dev/neofs-sdk-go/crypto/ecdsa"
 	"github.com/nspcc-dev/neofs-sdk-go/eacl"
 	"github.com/nspcc-dev/neofs-sdk-go/object"
 	oid "github.com/nspcc-dev/neofs-sdk-go/object/id"
 	"github.com/nspcc-dev/neofs-sdk-go/pool"
+	"github.com/nspcc-dev/neofs-sdk-go/session"
 	"github.com/nspcc-dev/neofs-sdk-go/user"
 	"io"
 	"log"
 	"math/big"
 	"net/http"
+	"path"
 	"strconv"
 	"time"
 )
@@ -54,9 +54,9 @@ func isErrAccessDenied(err error) (string, bool) {
 		return err.Reason(), true
 	}
 }
-func BuildBearerToken(table *eacl.Table, lIat, lNbf, lExp uint64, gateKey *keys.PublicKey, sigR, sigS big.Int) (*bearer.Token, error) {
+func BuildBearerToken(table *eacl.Table, lIat, lNbf, lExp uint64, serverPublicKey, containerOwnerKey *keys.PublicKey, sigR, sigS big.Int) (*bearer.Token, error) {
 	var userID user.ID
-	user.IDFromKey(&userID, (ecdsa.PublicKey)(*gateKey)) //my understanding is the gateKey is who you want to be able to use this key to access containers?
+	user.IDFromKey(&userID, (ecdsa.PublicKey)(*serverPublicKey)) //my understanding is the gateKey is who you want to be able to use this key to access containers?
 
 	var bearerToken bearer.Token
 
@@ -73,7 +73,7 @@ func BuildBearerToken(table *eacl.Table, lIat, lNbf, lExp uint64, gateKey *keys.
 
 	signatureData := elliptic.Marshal(elliptic.P256(), &sigR, &sigS)
 	v2signature.SetSign(signatureData)
-	v2signature.SetKey(gateKey.Bytes())
+	v2signature.SetKey(containerOwnerKey.Bytes()) //1. this should be the container owner
 
 	var bearerV2 acl.BearerToken
  	bearerToken.WriteToV2(&bearerV2)
@@ -88,17 +88,19 @@ func BuildBearerToken(table *eacl.Table, lIat, lNbf, lExp uint64, gateKey *keys.
 	return &bearerToken, nil
 }
 
-func BuildObjectSessionToken(lIat, lNbf, lExp uint64, verb session.ObjectVerb, cnrID cid.ID, gateSession *client.ResSessionCreate, gateKey *keys.PublicKey, sigR, sigS big.Int) (*session.Object, error) {
+func BuildObjectSessionToken(lIat, lNbf, lExp uint64, verb session.ObjectVerb, cnrID cid.ID, gateSession *client.ResSessionCreate, containerOwnerKey *keys.PublicKey, sigR, sigS big.Int) (*session.Object, error) {
 
 	var tok session.Object
 	tok.ForVerb(verb)
 	var idSession uuid.UUID
 	if err := idSession.UnmarshalBinary(gateSession.ID()); err != nil {
+		fmt.Println("error unmarhsal binary")
 		return nil, err
 	}
 	// decode session public key
 	var keySession neofsecdsa.PublicKey
 	if err := keySession.Decode(gateSession.PublicKey()); err != nil {
+		fmt.Println("error key session ", err)
 		return nil, err
 	}
 	tok.SetAuthKey(&keySession)
@@ -113,12 +115,14 @@ func BuildObjectSessionToken(lIat, lNbf, lExp uint64, verb session.ObjectVerb, c
 
 	signatureData := elliptic.Marshal(elliptic.P256(), &sigR, &sigS)
 	v2signature.SetSign(signatureData)
-	v2signature.SetKey(gateKey.Bytes())
+	v2signature.SetKey(containerOwnerKey.Bytes())
 
 	var sessionV2 v2session.Token
 	tok.WriteToV2(&sessionV2)
+	sessionV2.SetSignature(v2signature)
 	err := tok.ReadFromV2(sessionV2)
 	if err != nil {
+		fmt.Println("error read b2")
 		return nil, err
 	}
 	return &tok, nil
@@ -178,19 +182,24 @@ func GetObjectHead(serverPrivateKey *keys.PrivateKey) http.HandlerFunc {
 		//this is all going to get done regularly and thus should be a middleware
 		cntID := cid.ID{}
 
-		if err := cntID.Decode([]byte(chi.URLParam(r, "containerId"))); err != nil {
+		if err := cntID.DecodeString(chi.URLParam(r, "containerId")); err != nil {
 			log.Println("no container id", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
 		objID := oid.ID{}
 
-		if err := objID.Decode([]byte(chi.URLParam(r, "objectId"))); err != nil {
+		if err := objID.DecodeString(chi.URLParam(r, "objectId")); err != nil {
 			log.Println("no object id", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
-
+		k, err, code := utils.GetPublicKey(ctx)
+		if err != nil {
+			log.Println("no public key", err)
+			http.Error(w, err.Error(), code)
+			return
+		}
 		sigR, sigS, err := utils.RetrieveSignatureParts(ctx)
 		if err != nil {
 			log.Println("cannot generate signature", err)
@@ -203,22 +212,29 @@ func GetObjectHead(serverPrivateKey *keys.PrivateKey) http.HandlerFunc {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		target := eacl.Target{}
-		target.SetRole(eacl.RoleUser)
-		target.SetBinaryKeys([][]byte{serverPrivateKey.PublicKey().Bytes()})
-		table, err := tokens.AllowHead(cntID, target)
-		if err != nil {
-			log.Println("error creating access table ", err)
-			http.Error(w, err.Error(), 400)
-		}
+		//target := eacl.Target{}
+		//target.SetRole(eacl.RoleUser)
+		//target.SetBinaryKeys([][]byte{serverPrivateKey.PublicKey().Bytes()})
+		table := tokens.PUTAllowDenyOthersEACL(cntID, serverPrivateKey.PublicKey())
+		//if err != nil {
+		//	log.Println("error creating access table ", err)
+		//	http.Error(w, err.Error(), 400)
+		//}
 		//(table *eacl.Table, lIat, lNbf, lExp uint64, gateKey *keys.PublicKey, sigR, sigS big.Int) (*bearer.Token, error) {
-		bearer, err := BuildBearerToken(&table, iAt, iAt, exp, serverPrivateKey.PublicKey(), sigR, sigS)
+		bearer, err := BuildBearerToken(&table, iAt, iAt, exp, serverPrivateKey.PublicKey(), k, sigR, sigS)
 		if err != nil {
 			log.Println("cannot generate bearer token", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
 
+		//bearer, err := BuildBearerToken(&table, iAt, iAt, exp, serverPrivateKey.PublicKey(), k, sigR, sigS)
+		//if err != nil {
+		//	log.Println("cannot generate bearer token", err)
+		//	http.Error(w, err.Error(), 400)
+		//	return
+		//}
+		//
 		content, err := getObjectMetaData(ctx, objID, cntID, *bearer, *pl)
 		if err != nil {
 			log.Println("cannot retrieve metadata", err)
@@ -286,9 +302,15 @@ func ListObjectsInContainer(serverPrivateKey *keys.PrivateKey) http.HandlerFunc 
 			return
 		}
 		var cntID cid.ID
-		if err := cntID.Decode([]byte(chi.URLParam(r, "containerId"))); err != nil {
+		if err := cntID.DecodeString(chi.URLParam(r, "containerId")); err != nil {
 			log.Println("no container id", err)
 			http.Error(w, err.Error(), 400)
+			return
+		}
+		k, err, code := utils.GetPublicKey(ctx)
+		if err != nil {
+			log.Println("no public key", err)
+			http.Error(w, err.Error(), code)
 			return
 		}
 		sigR, sigS, err := utils.RetrieveSignatureParts(ctx)
@@ -306,12 +328,9 @@ func ListObjectsInContainer(serverPrivateKey *keys.PrivateKey) http.HandlerFunc 
 		target := eacl.Target{}
 		target.SetRole(eacl.RoleUser)
 		target.SetBinaryKeys([][]byte{serverPrivateKey.PublicKey().Bytes()})
-		table, err := tokens.AllowList(cntID, target)
-		if err != nil {
-			log.Println("error creating access table ", err)
-			http.Error(w, err.Error(), 400)
-		}
-		bearer, err := BuildBearerToken(&table, iAt, iAt, exp, serverPrivateKey.PublicKey(), sigR, sigS)
+		table := tokens.PUTAllowDenyOthersEACL(cntID, serverPrivateKey.PublicKey())
+
+		bearer, err := BuildBearerToken(&table, iAt, iAt, exp, serverPrivateKey.PublicKey(), k, sigR, sigS)
 		if err != nil {
 			log.Println("cannot generate bearer token", err)
 			http.Error(w, err.Error(), 400)
@@ -387,15 +406,21 @@ func GetObject(serverPrivateKey *keys.PrivateKey) http.HandlerFunc{
 			return
 		}
 		var cntID cid.ID
-		if err := cntID.Decode([]byte(chi.URLParam(r, "containerId"))); err != nil {
+		if err := cntID.DecodeString(chi.URLParam(r, "containerId")); err != nil {
 			log.Println("no container id", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
 		objID := oid.ID{}
-		if err := objID.Decode([]byte(chi.URLParam(r, "objectId"))); err != nil {
+		if err := objID.DecodeString(chi.URLParam(r, "objectId")); err != nil {
 			log.Println("no object id", err)
 			http.Error(w, err.Error(), 400)
+			return
+		}
+		k, err, code := utils.GetPublicKey(ctx)
+		if err != nil {
+			log.Println("no public key", err)
+			http.Error(w, err.Error(), code)
 			return
 		}
 		sigR, sigS, err := utils.RetrieveSignatureParts(ctx)
@@ -416,72 +441,59 @@ func GetObject(serverPrivateKey *keys.PrivateKey) http.HandlerFunc{
 		addr.SetContainer(cntID)
 		addr.SetObject(objID)
 
-		prmCli := client.PrmInit{}
-		prmCli.SetDefaultPrivateKey(serverPrivateKey.PrivateKey)
-		var prmDial client.PrmDial
-		prmDial.SetServerURI(storageNodes["0"].Address)
-		cli := client.Client{}
-		cli.Init(prmCli)
-		cli.Dial(prmDial)
-
-		prmSession := client.PrmSessionCreate{}
-		prmSession.UseKey(serverPrivateKey.PrivateKey)
-		prmSession.SetExp(exp)
-		resSession, err := cli.SessionCreate(ctx, prmSession)
+		table := tokens.PUTAllowDenyOthersEACL(cntID, serverPrivateKey.PublicKey())
+		bearer, err := BuildBearerToken(&table, iAt, iAt, exp, serverPrivateKey.PublicKey(), k, sigR, sigS)
 		if err != nil {
-			log.Println("cannot create session", err)
+			log.Println("cannot generate bearer token", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
 
-		sc, err := BuildObjectSessionToken(iAt, iAt, exp, session.VerbObjectGet, cntID, resSession, serverPrivateKey.PublicKey(), sigR, sigS)
-		if err != nil {
-			log.Println("error creating session token to create a container", err)
-			http.Error(w, err.Error(), 400)
-			return
-		}
-		getInit := client.PrmObjectGet{}
-		getInit.WithinSession(*sc)
-		getInit.FromContainer(cntID)
+		var prmGet pool.PrmObjectGet
+		prmGet.SetAddress(addr)
+		prmGet.UseBearer(*bearer)
 
-		getInit.ByID(objID)
-		dstObject := &object.Object{}
-		objReader, err := cli.ObjectGetInit(ctx, getInit)
+		rObj, err := pl.GetObject(ctx, prmGet)
 		if err != nil {
-			log.Println("error creating object reader ", err)
+			log.Println("error retrieving the object", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		if !objReader.ReadHeader(dstObject) {
-			res, err := objReader.Close()
-			if err != nil {
-				log.Println("could not close object reader ", err)
-				http.Error(w, err.Error(), 400)
-				return
+
+		payloadSize := rObj.Header.PayloadSize()
+		var contentType, filename string
+		for _, attr := range rObj.Header.Attributes() {
+			key := attr.Key()
+			val := attr.Value()
+			w.Header().Add("X-"+key, val)
+			switch key {
+			case object.AttributeFileName:
+				filename = val
+			case object.AttributeTimestamp:
+				value, err := strconv.ParseInt(val, 10, 64)
+				if err != nil {
+					fmt.Println("couldn't parse timestamp")
+					continue
+				}
+				w.Header().Add("X-"+object.AttributeTimestamp,
+					time.Unix(value, 0).UTC().Format(http.TimeFormat))
+			case object.AttributeContentType:
+				contentType = val
+				w.Header().Add("Content-Type", contentType)
 			}
-			log.Println("res for failure to read header ", res.Status())
-			http.Error(w, err.Error(), 400)
+		}
+		w.Header().Add("Content-Length", strconv.FormatUint(payloadSize, 10))
+		w.Header().Add("Content-Disposition", "inline; filename="+path.Base(filename))
+		if  _, err := io.Copy(w, rObj.Payload); err != nil {
+			log.Println("error retrieving the object", err)
+			http.Error(w, err.Error(), 502)
 			return
 		}
-		buf := make([]byte, 1024)
-		for {
-			n, err := objReader.Read(buf)
-			// get total size from object header and update progress bar based on n bytes received
-			if errors.Is(err, io.EOF) {
-				fmt.Println("end of file")
-				break
-			}
-			if _, err := w.Write(buf[:n]); err != nil {
-				fmt.Println("error writing buffer ", err)
-				break
-			}
+
+		if err := rObj.Payload.Close(); err != nil {
+			log.Println("cannot close readcloser", err)
+			http.Error(w, "could not read body", http.StatusInternalServerError)
 		}
-		res, err := objReader.Close()
-		if err != nil {
-			log.Println("res for failure to read header ", res.Status())
-			http.Error(w, err.Error(), 400)
-		}
-		return
 	}
 }
 
@@ -516,7 +528,8 @@ func UploadObject(serverPrivateKey *keys.PrivateKey) http.HandlerFunc {
 		}
 		var cntID cid.ID
 
-		if err := cntID.Decode([]byte(chi.URLParam(r, "containerId"))); err != nil {
+		fmt.Println("container ID received ", chi.URLParam(r, "containerId"))
+		if err := cntID.DecodeString(chi.URLParam(r, "containerId")); err != nil {
 			log.Println("no container id", err)
 			http.Error(w, err.Error(), 400)
 			return
@@ -530,31 +543,20 @@ func UploadObject(serverPrivateKey *keys.PrivateKey) http.HandlerFunc {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-
+		k, err, code := utils.GetPublicKey(ctx)
+		if err != nil {
+			log.Println("no public key", err)
+			http.Error(w, err.Error(), code)
+			return
+		}
 		iAt, exp, err := gspool.TokenExpiryValue(ctx, *pl, 100)
 		if err != nil {
 			log.Println("cannot generate expiration", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		prmCli := client.PrmInit{}
-		prmCli.SetDefaultPrivateKey(serverPrivateKey.PrivateKey)
-		var prmDial client.PrmDial
-		prmDial.SetServerURI(storageNodes["0"].Address) //fixme - this should evolve with the chosen pl peer.
-		cli := client.Client{}
-		cli.Init(prmCli)
-		cli.Dial(prmDial)
 
-		prmSession := client.PrmSessionCreate{}
-		prmSession.UseKey(serverPrivateKey.PrivateKey)
-		prmSession.SetExp(exp)
-		resSession, err := cli.SessionCreate(ctx, prmSession)
-		if err != nil {
-			log.Println("cannot create session", err)
-			http.Error(w, err.Error(), 400)
-			return
-		}
-		obj := object.New()
+		var obj object.Object
 		obj.SetContainerID(cntID)
 		obj.SetOwnerID(&userID)
 
@@ -606,40 +608,89 @@ func UploadObject(serverPrivateKey *keys.PrivateKey) http.HandlerFunc {
 
 		obj.SetAttributes(attributes...)
 		ioReader = (io.Reader)(file)
-		sc, err := BuildObjectSessionToken(iAt, iAt, exp, session.VerbObjectPut, cntID, resSession, serverPrivateKey.PublicKey(), sigR, sigS)
-		if err != nil {
-			log.Println("error creating session token to create a container", err)
-			http.Error(w, err.Error(), 400)
-			return
-		}
+		//prmCli := client.PrmInit{}
+		//prmCli.SetDefaultPrivateKey(serverPrivateKey.PrivateKey)
+		//prmCli.ResolveNeoFSFailures()
+		//var prmDial client.PrmDial
+		//prmDial.SetServerURI(storageNodes["0"].Address) //fixme - this should evolve with the chosen pl peer.
+		//cli := client.Client{}
+		//cli.Init(prmCli)
+		//
+		//if err := cli.Dial(prmDial); err != nil {
+		//	fmt.Println("error dialing client ", err)
+		//}
 
-		putInit := client.PrmObjectPutInit{}
-		putInit.WithinSession(*sc)
-		objWriter, err := cli.ObjectPutInit(ctx, putInit)
-		if !objWriter.WriteHeader(*obj) || err != nil {
-			log.Println("error writing object header ", err)
-			http.Error(w, err.Error(), 400)
-			return
-		}
-		buf := make([]byte, 1024) // 1 MiB
-		for {
-			n, err := ioReader.Read(buf)
-			if !objWriter.WritePayloadChunk(buf[:n]) {
-				break
-			}
-			if errors.Is(err, io.EOF) {
-				break
-			}
-		}
-
-		res, err := objWriter.Close()
+		//prmSession := client.PrmSessionCreate{}
+		//prmSession.UseKey(serverPrivateKey.PrivateKey)
+		//prmSession.SetExp(exp)
+		//resSession, err := cli.SessionCreate(ctx, prmSession)
+		//if err != nil {
+		//	log.Println("cannot create session", err)
+		//	http.Error(w, err.Error(), 400)
+		//	return
+		//}
+		//target := eacl.Target{}
+		//target.SetRole(eacl.RoleUser)
+		//target.SetBinaryKeys([][]byte{serverPrivateKey.PublicKey().Bytes()})
+		//table, err := tokens.AllowGetPut(cntID, target)
+		//if err != nil {
+		//	log.Println("error creating access table ", err)
+		//	http.Error(w, err.Error(), 400)
+		//}
+		table := tokens.PUTAllowDenyOthersEACL(cntID, serverPrivateKey.PublicKey())
+		bearer, err := BuildBearerToken(&table, iAt, iAt, exp, serverPrivateKey.PublicKey(), k, sigR, sigS)
 		if err != nil {
-			log.Println("error closing object writer ", err)
+			log.Println("cannot generate bearer token", err)
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		objectID := res.StoredObjectID()
-		w.Write([]byte(objectID.String()))
+		//sc, err := BuildObjectSessionToken(iAt, iAt, exp, session.VerbObjectPut, cntID, resSession, k, sigR, sigS)
+		//if err != nil {
+		//	log.Println("error creating session token to create a container", err)
+		//	http.Error(w, err.Error(), 400)
+		//	return
+		//}
+
+		prmPut := pool.PrmObjectPut{}
+		prmPut.UseBearer(*bearer)
+		prmPut.SetPayload(ioReader)
+		prmPut.SetHeader(obj)
+		putObject, err := pl.PutObject(ctx, prmPut)
+		if err != nil {
+			fmt.Println("couldn't put object with pool ", err)
+				http.Error(w, err.Error(), 400)
+				return
+		}
+		//https://github.com/nspcc-dev/neofs-http-gw/blob/master/uploader/upload.go#L190
+		//
+		//putInit := client.PrmObjectPutInit{}
+		////putInit.WithinSession(*sc)
+		//putInit.WithBearerToken(*bearer)
+		//objWriter, err := cli.ObjectPutInit(ctx, putInit)
+		//if !objWriter.WriteHeader(*obj) || err != nil {
+		//	log.Println("error writing object header ", err)
+		//	http.Error(w, err.Error(), 400)
+		//	return
+		//}
+		//buf := make([]byte, 1024) // 1 MiB
+		//for {
+		//	n, err := ioReader.Read(buf)
+		//	if !objWriter.WritePayloadChunk(buf[:n]) {
+		//		break
+		//	}
+		//	if errors.Is(err, io.EOF) {
+		//		break
+		//	}
+		//}
+		//
+		//res, err := objWriter.Close()
+		//if err != nil {
+		//	log.Println("error closing object writer ", err)
+		//	http.Error(w, err.Error(), 400)
+		//	return
+		//}
+		//objectID := res.StoredObjectID()
+		w.Write([]byte(putObject.String()))
 		return
 	}
 }
@@ -675,7 +726,7 @@ func DeleteObject(serverPrivateKey *keys.PrivateKey) http.HandlerFunc {
 		fmt.Println("chi.", r.RequestURI)
 		var cntID cid.ID
 
-		if err := cntID.Decode([]byte(chi.URLParam(r, "containerId"))); err != nil {
+		if err := cntID.DecodeString(chi.URLParam(r, "containerId")); err != nil {
 			log.Println("no container id", err)
 			http.Error(w, err.Error(), 400)
 			return
@@ -685,6 +736,12 @@ func DeleteObject(serverPrivateKey *keys.PrivateKey) http.HandlerFunc {
 		if err := objID.Decode([]byte(chi.URLParam(r, "objectId"))); err != nil {
 			log.Println("no object id", err)
 			http.Error(w, err.Error(), 400)
+			return
+		}
+		k, err, code := utils.GetPublicKey(ctx)
+		if err != nil {
+			log.Println("no public key", err)
+			http.Error(w, err.Error(), code)
 			return
 		}
 		sigR, sigS, err := utils.RetrieveSignatureParts(ctx)
@@ -707,7 +764,7 @@ func DeleteObject(serverPrivateKey *keys.PrivateKey) http.HandlerFunc {
 			log.Println("error creating access table ", err)
 			http.Error(w, err.Error(), 400)
 		}
-		bearer, err := BuildBearerToken(&table, iAt, iAt, exp, serverPrivateKey.PublicKey(), sigR, sigS)
+		bearer, err := BuildBearerToken(&table, iAt, iAt, exp, serverPrivateKey.PublicKey(), k, sigR, sigS)
 		if err != nil {
 			log.Println("cannot generate bearer token", err)
 			http.Error(w, err.Error(), 400)

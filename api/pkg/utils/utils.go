@@ -55,10 +55,11 @@ func GetPublicKey(ctx context.Context) (*keys.PublicKey, error, int) {
 	return k, nil, 200
 }
 func RetrieveStorageNode(ctx context.Context) (map[string]config.Peer, error) {
-	network, ok := ctx.Value("network").(Network)
+	network, ok:= ctx.Value("network").(string)
 	if !ok {
 		return nil, errors.New("could not retrieve network header. Are you sure it was set as part of the request?")
 	}
+	fmt.Println("net", network)
 	return networks[network].StorageNodes, nil
 }
 func RetrieveSignatureParts(ctx context.Context) (big.Int, big.Int, error){

@@ -15,8 +15,8 @@ type NetworkData struct{
 	RpcNodes     []string
 }
 
-var networks = map[Network]NetworkData{
-	Mainnet: {
+var networks = map[string]NetworkData{
+	"mainnet": {
 		Name: "Main Net",
 		ID:      "mainnet",
 		Address: "NNxVrKjLsRkWsmGgmuNXLcMswtxTGaNQLk",
@@ -55,7 +55,7 @@ var networks = map[Network]NetworkData{
 			"https://rpc10.n3.nspcc.ru:10331",
 		},
 	},
-	Testnet: {
+	"testnet": {
 		Name: "Test Net",
 		ID:      "testnet",
 		Address: "NZAUkYbJ1Cb2HrNmwZ1pg9xYHBhm2FgtKV",
