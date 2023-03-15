@@ -733,7 +733,7 @@ func DeleteObject(serverPrivateKey *keys.PrivateKey) http.HandlerFunc {
 		}
 
 		objID := oid.ID{}
-		if err := objID.Decode([]byte(chi.URLParam(r, "objectId"))); err != nil {
+		if err := objID.DecodeString(chi.URLParam(r, "objectId")); err != nil {
 			log.Println("no object id", err)
 			http.Error(w, err.Error(), 400)
 			return
@@ -759,7 +759,7 @@ func DeleteObject(serverPrivateKey *keys.PrivateKey) http.HandlerFunc {
 		target := eacl.Target{}
 		target.SetRole(eacl.RoleUser)
 		target.SetBinaryKeys([][]byte{serverPrivateKey.PublicKey().Bytes()})
-		table, err := tokens.AllowDelete(cntID, target)
+		table := tokens.PUTAllowDenyOthersEACL(cntID, serverPrivateKey.PublicKey())
 		if err != nil {
 			log.Println("error creating access table ", err)
 			http.Error(w, err.Error(), 400)
