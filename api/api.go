@@ -148,10 +148,14 @@ func main() {
 		r.Post("/{containerId}", objects.UploadObject(&serverPrivateKey))
 
 	})
+	var port string = os.Getenv("PORT")
+	if port == "" {
+		port = "9000"
+	}
 	clientFs := http.FileServer(http.Dir("client"))
 	r.Handle("/*", clientFs)
 	log.Println("about to listen and server")
-	err = http.ListenAndServe(":"+os.Getenv("PORT"), r)
+	err = http.ListenAndServe(":"+port, r)
 	if err != nil {
 		log.Fatal("error ", err)
 	}
