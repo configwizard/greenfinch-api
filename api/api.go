@@ -151,7 +151,7 @@ func main() {
 	clientFs := http.FileServer(http.Dir("client"))
 	r.Handle("/*", clientFs)
 	log.Println("about to listen and server")
-	err = http.ListenAndServe(":9000", r)
+	err = http.ListenAndServe(":"+os.Getenv("PORT"), r)
 	if err != nil {
 		log.Fatal("error ", err)
 	}

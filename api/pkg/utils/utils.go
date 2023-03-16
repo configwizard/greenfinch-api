@@ -79,14 +79,14 @@ func RetrieveSignatureParts(ctx context.Context) (big.Int, big.Int, error){
 	return r, s, err
 }
 func bigIntByteConverter(byteValue string) (big.Int, error) {
-	bytes := new(big.Int)
-	bytes, ok := bytes.SetString(byteValue, 16)
+	bigInt := new(big.Int)
+	bigInt, ok := bigInt.SetString(byteValue, 16)
 	if !ok {
 		fmt.Println("by: error")
 		return big.Int{}, errors.New("could not convert byteValue")
 	}
-	fmt.Println("recovered ", bytes)
-	return *bytes, nil
+	fmt.Println("recovered ", bigInt)
+	return *bigInt, nil
 }
 func bigIntHandler(numValue string, byteValue string) (big.Int, big.Int, error){
 	num := new(big.Int)
